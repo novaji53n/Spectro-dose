@@ -1,0 +1,11 @@
+{
+  "name": "spectro-dose",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "เว็บแอปอ่านค่าดูดกลืนแสง/โดสจาก Thermo Genesys 20 ผ่าน Web Serial",
+  "scripts": {
+    "start": "node serve.mjs",
+    "test": "node test/parser.test.mjs && node test/dom-contract.test.mjs && node test/calibration.test.mjs && node test/xlsx.test.mjs && node test/energy.test.mjs"
+  }
+}

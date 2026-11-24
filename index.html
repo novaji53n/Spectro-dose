@@ -1,0 +1,429 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Spectro Dose Reader — Genesys 20</title>
+  <link rel="icon" href="data:," />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">&#955;</div>
+      <div class="brand-text">
+        <h1>Spectro Dose Reader</h1>
+        <p>อ่านค่าดูดกลืนแสง/โดสจาก Thermo Genesys 20 ผ่าน Serial Port</p>
+      </div>
+    </div>
+    <div id="statusChip" class="status-chip" data-state="idle">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="statusText">ยังไม่เชื่อมต่อ</span>
+    </div>
+  </header>
+
+  <div class="actionbar">
+    <button id="btnSndTop" class="btn primary" type="button" disabled title="อ่านค่า SND (คีย์ลัด Ctrl+Shift ซ้าย)">อ่านค่า (SND)</button>
+    <button id="btnImportCalTop" class="btn" type="button">นำเข้าตารางสอบเทียบ</button>
+    <button id="btnReportXlsx" class="btn" type="button">รายงาน Excel</button>
+    <button id="btnReportPdf" class="btn" type="button">รายงาน PDF</button>
+    <span id="actionNote" class="action-note">เชื่อมต่อก่อนเพื่อกดอ่านค่า &middot; คีย์ลัด Ctrl+Shift (ซ้าย)</span>
+  </div>
+
+  <nav class="tabs main-tabs" role="tablist" aria-label="เมนูหลัก">
+    <button class="tab" type="button" role="tab" aria-selected="false" data-tab="reading">อ่านโดส</button>
+    <button class="tab" type="button" role="tab" aria-selected="false" data-tab="energy">พลังงาน</button>
+    <button class="tab" type="button" role="tab" aria-selected="false" data-tab="cal">สอบเทียบ</button>
+    <button class="tab is-active" type="button" role="tab" aria-selected="true" data-tab="connect">เชื่อมต่อ / คำสั่ง</button>
+  </nav>
+
+  <main class="layout mode-solo">
+    <aside class="col-left">
+      <div class="tab-panels">
+        <section class="tab-panel is-active" data-panel="connect" role="tabpanel">
+      <section class="card">
+        <h2>1 &middot; เชื่อมต่อเครื่อง</h2>
+        <div class="field port-field">
+          <span>พอร์ต (COM)</span>
+          <div class="port-row">
+            <select id="selPort" aria-label="พอร์ตที่ใช้เชื่อมต่อ">
+              <option value="">— ยังไม่มีพอร์ตที่อนุญาต —</option>
+            </select>
+            <button id="btnPickPort" class="btn" type="button">เลือกพอร์ต…</button>
+            <button id="btnRefreshPorts" class="btn icon-only" type="button" title="สแกนรายการพอร์ตที่อนุญาตแล้วใหม่" aria-label="รีเฟรชรายการพอร์ต">&#8635;</button>
+          </div>
+          <p class="hint tiny-hint">เบราว์เซอร์ไม่แสดงเลข COM ของ Windows — จะแสดงเป็นลำดับพร้อมรุ่นชิป USB &middot; เลือกผิดให้ตัดการเชื่อมต่อแล้วเลือกใหม่</p>
+        </div>
+        <div class="grid-2">
+          <label class="field">
+            <span>Baud rate</span>
+            <select id="selBaud">
+              <option value="1200">1200</option>
+              <option value="2400">2400</option>
+              <option value="4800">4800</option>
+              <option value="9600" selected>9600</option>
+              <option value="19200">19200</option>
+              <option value="38400">38400</option>
+              <option value="57600">57600</option>
+              <option value="115200">115200</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Data bits</span>
+            <select id="selDataBits">
+              <option value="8" selected>8</option>
+              <option value="7">7</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Stop bits</span>
+            <select id="selStopBits">
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Parity</span>
+            <select id="selParity">
+              <option value="none" selected>none</option>
+              <option value="even">even</option>
+              <option value="odd">odd</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Flow control</span>
+            <select id="selFlow">
+              <option value="none" selected>none</option>
+              <option value="hardware">hardware</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="btnConnect" class="btn primary" type="button">เชื่อมต่อ</button>
+          <button id="btnDisconnect" class="btn" type="button" disabled>ตัดการเชื่อมต่อ</button>
+        </div>
+        <button id="btnDemo" class="btn subtle" type="button">ทดลองด้วยข้อมูลจำลอง</button>
+        <p class="hint">
+          ใช้ Chrome หรือ Edge เท่านั้น &middot; เปิดไฟล์ตรง ๆ หรือผ่าน <code>http://localhost</code> ก็ได้
+          &middot; ค่าเริ่มต้น 9600&nbsp;8-N-1 ปรับให้ตรงกับเครื่อง
+        </p>
+        <details class="mini-help">
+          <summary>ให้เครื่องส่งค่าออกมา ต้องกดอะไร</summary>
+          <ol class="help-list">
+            <li><b>Utility</b> &rarr; <b>Printer setup</b> &rarr; Change &rarr; เลือก <b>Serial</b> &rarr; Accept<br />
+              <span class="muted">ถ้าเป็น OFF / Internal / Parallel ค่าจะไม่ถูกส่งออกพอร์ต RS-232</span></li>
+            <li><b>Utility</b> &rarr; <b>RS232</b> &rarr; ตั้ง baud ให้ตรงกับช่องด้านบน (ปกติ 9600, 8, none, 1) &rarr; Accept</li>
+            <li>กลับไปโหมดวัด (A/T/C) แล้วกด <b>Print</b> หนึ่งครั้ง = ส่งค่าที่ค้างบนจอ 1 ค่า</li>
+          </ol>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>2 &middot; สั่งอ่านค่าจากคอมพิวเตอร์</h2>
+        <div class="preset-row">
+          <button id="btnCmdModel" class="btn tiny" type="button" disabled>รุ่น (MODEL)</button>
+          <button id="btnCmdRev" class="btn tiny" type="button" disabled>เวอร์ชัน (REV)</button>
+        </div>
+        <div class="inline">
+          <input id="inpCommand" type="text" placeholder="SND" spellcheck="false" />
+          <select id="selLineEnding">
+            <option value="CRLF">CR LF</option>
+            <option value="LF">LF</option>
+            <option value="CR" selected>CR</option>
+            <option value="NONE">ไม่มี</option>
+          </select>
+          <button id="btnSend" class="btn" type="button" disabled>ส่ง</button>
+        </div>
+        <label class="switch">
+          <input id="chkPoll" type="checkbox" />
+          <span>ส่งซ้ำอัตโนมัติทุก</span>
+          <input id="inpPollSec" type="number" min="0.2" step="0.1" value="1" class="num-sm" />
+          <span>วินาที</span>
+        </label>
+        <p class="hint">
+          รุ่นนี้รับคำสั่ง <code>SND</code> แล้วจะส่งค่าอ่านกลับมาทันที (9600 8-N-1) — ไม่ต้องกด Print ที่เครื่อง
+          &middot; เปิด “ส่งซ้ำอัตโนมัติ” เพื่ออ่านต่อเนื่อง
+        </p>
+      </section>
+
+      <section class="card">
+        <details id="rawDetails">
+          <summary>ข้อมูลดิบจากพอร์ต (ใช้หา baud / รูปแบบ)</summary>
+          <div class="inline">
+            <label class="switch small">
+              <input id="chkHex" type="checkbox" />
+              <span>แสดงเป็น HEX</span>
+            </label>
+            <button id="btnClearRaw" class="btn tiny" type="button">ล้าง</button>
+          </div>
+          <pre id="rawLog" class="raw-log" tabindex="0"></pre>
+          <p class="hint" id="ignoredHits">บรรทัดที่แยกค่าไม่ได้: 0</p>
+        </details>
+      </section>
+        </section>
+
+        <section class="tab-panel" data-panel="cal" role="tabpanel">
+      <section class="card">
+        <h2>3 &middot; วิธีอ่านค่า</h2>
+        <label class="field">
+          <span>รูปแบบข้อมูลที่เครื่องส่งมา</span>
+          <select id="selMode"></select>
+        </label>
+        <label class="field" id="regexField" hidden>
+          <span>Regex (ใช้ named group <code>value</code> หรือ group&nbsp;1)</span>
+          <input id="inpRegex" type="text" spellcheck="false" placeholder="(?&lt;value&gt;[-+]?\d+[.,]\d+)\s*(?&lt;unit&gt;A|T)" />
+        </label>
+        <label class="field">
+          <span>ทดสอบกับข้อความตัวอย่าง</span>
+          <input id="testLine" type="text" spellcheck="false" placeholder="600NM 0.412 A" />
+        </label>
+        <p id="testResult" class="test-result" aria-live="polite">&mdash;</p>
+        <p class="hint">ถ้ายังไม่รู้รูปแบบ ให้เปิด &ldquo;ข้อมูลดิบ&rdquo; ด้านล่าง แล้วกด Print บนเครื่องหนึ่งครั้ง</p>
+      </section>
+
+      <section class="card">
+        <h2>4 &middot; แปลงเป็นโดส</h2>
+        <label class="switch">
+          <input id="chkCalib" type="checkbox" />
+          <span>เปิดใช้เส้นสอบเทียบ</span>
+        </label>
+
+        <div class="cal-import">
+          <div class="inline">
+            <button id="btnImportCal" class="btn" type="button">นำเข้าตารางสอบเทียบ (Excel / CSV)</button>
+            <button id="btnClearCal" class="btn tiny danger" type="button">ล้างตาราง</button>
+          </div>
+          <input id="inpCalFile" type="file" accept=".xlsx,.xls,.csv,.txt" hidden />
+          <p id="calTableInfo" class="hint">ยังไม่มีตาราง — นำเข้าไฟล์ Excel ที่มีคอลัมน์ Absorbance กับ Dose</p>
+          <div class="cal-test">
+            <span class="cal-test-label">ทดสอบค่า A</span>
+            <input id="inpCalTest" type="number" step="0.001" inputmode="decimal" placeholder="0.250" />
+            <span id="calTestResult" class="cal-test-result">&mdash;</span>
+          </div>
+          <details id="calPreview" hidden>
+            <summary>ดูจุดสอบเทียบ</summary>
+            <div class="table-wrap mini">
+              <table>
+                <thead>
+                  <tr><th>#</th><th>Absorbance</th><th>Dose</th></tr>
+                </thead>
+                <tbody id="calPreviewBody"></tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
+        <label class="field">
+          <span>วิธีคำนวณ</span>
+          <select id="selCalMode">
+            <option value="formula">สูตร k<sub>1</sub> / k<sub>2</sub></option>
+            <option value="table">ตารางสอบเทียบ (import จาก Excel)</option>
+          </select>
+        </label>
+
+        <div class="grid-2" id="formulaFields">
+          <label class="field">
+            <span>k<sub>1</sub> (โดส/AU)</span>
+            <input id="inpK1" type="number" step="any" value="1" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>k<sub>2</sub> (โดส/AU<sup>2</sup>)</span>
+            <input id="inpK2" type="number" step="any" value="0" inputmode="decimal" />
+          </label>
+        </div>
+
+        <div class="grid-2 cal-common">
+          <label class="field" id="a0Field">
+            <span>A<sub>0</sub> (blank)</span>
+            <input id="inpA0" type="number" step="0.001" value="0" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>หน่วยโดส</span>
+            <select id="selDoseUnit">
+              <option value="Gy" selected>Gy</option>
+              <option value="mGy">mGy</option>
+              <option value="cGy">cGy</option>
+              <option value="kGy">kGy</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="formula" id="calFormula">D = k<sub>1</sub>&middot;(A &minus; A<sub>0</sub>) + k<sub>2</sub>&middot;(A &minus; A<sub>0</sub>)<sup>2</sup></p>
+        <button id="btnSetA0" class="btn subtle" type="button">ตั้ง A<sub>0</sub> = ค่าล่าสุด</button>
+      </section>
+        </section>
+
+        <section class="tab-panel" data-panel="energy" role="tabpanel">
+      <section class="card">
+        <h2>5 &middot; วัดพลังงาน (อิเล็กตรอน)</h2>
+        <p class="hint">อ่านค่าด้วย SND/Print ขณะอยู่แท็บนี้ — ค่า Ai จะเติมตามลำดับ 0.1812 → 5.6633 อัตโนมัติ</p>
+        <p id="energyCalInfo" class="hint">ใช้ตารางสอบเทียบจากแท็บสอบเทียบ (A → Dose)</p>
+
+        <div class="sim-box">
+          <label class="field sim-field">
+            <span>โหมดจำลอง — พลังงาน (MeV)</span>
+            <input id="inpSimEnergy" type="number" step="0.1" min="1" value="10" inputmode="decimal" />
+          </label>
+          <button id="btnSimRun" class="btn primary" type="button">ตกลง / จำลอง</button>
+        </div>
+        <p class="hint">จำลอง depth–dose แบบ PDD ตามพลังงานที่ใส่ แล้วเติม Ai ให้ทั้ง 60 แถว (ใช้ตารางสอบเทียบจากแท็บสอบเทียบ)</p>
+
+        <label class="switch">
+          <input id="chkEnergyAutoFit" type="checkbox" checked />
+          <span>เลือกช่วงอัตโนมัติ (R² ใกล้ 1 ที่สุด)</span>
+        </label>
+        <p class="hint">หรือเลือกเองโดย <b>คลิกที่แถว</b> ในตาราง: คลิกแรก = จุดเริ่ม, คลิกที่สอง = จุดสิ้นสุด (หรือพิมพ์เลขแถวด้านล่าง) — ระบบจะแสดง R² ของช่วงที่เลือก</p>
+        <div class="grid-2" id="energyFitFields">
+          <label class="field">
+            <span>Fit แถวเริ่ม</span>
+            <input id="inpEnergyFitFrom" type="number" min="1" step="1" value="1" />
+          </label>
+          <label class="field">
+            <span>Fit แถวสิ้นสุด</span>
+            <input id="inpEnergyFitTo" type="number" min="1" step="1" value="2" />
+          </label>
+        </div>
+        <p id="energyR2" class="energy-r2">R² = —</p>
+
+        <div class="inline energy-actions">
+          <button id="btnEnergyAdd" class="btn tiny" type="button">+ เพิ่มแถว</button>
+          <button id="btnEnergyCapture" class="btn tiny" type="button">เก็บค่าล่าสุด</button>
+          <button id="btnEnergyClear" class="btn tiny danger" type="button">ล้างข้อมูล</button>
+          <span id="energyProgress" class="muted">0/60</span>
+        </div>
+
+        <div class="energy-results">
+          <div><span>Dmax</span><strong id="enDmax">&mdash;</strong></div>
+          <div><span>R50 (cm)</span><strong id="enR50">&mdash;</strong></div>
+          <div><span>Rp (cm)</span><strong id="enRp">&mdash;</strong></div>
+          <div><span>Ea (MeV)</span><strong id="enEa">&mdash;</strong></div>
+          <div><span>Ep (MeV)</span><strong id="enEp">&mdash;</strong></div>
+        </div>
+        <p id="energyNote" class="hint">กรอก Depth/Ai แล้วผลจะคำนวณอัตโนมัติ</p>
+      </section>
+        </section>
+      </div>
+    </aside>
+
+    <section class="col-right">
+      <section class="card reading">
+        <div class="reading-top">
+          <span class="eyebrow">ค่าล่าสุด</span>
+          <span id="curTime" class="muted">&mdash;</span>
+        </div>
+        <div class="reading-main">
+          <div class="big">
+            <span id="curValue">&mdash;</span><span id="curUnit" class="unit">A</span>
+          </div>
+          <div id="doseBox" class="dose-box off">
+            <span class="eyebrow">โดส</span>
+            <span id="curDose" class="dose">&mdash;</span>
+            <span id="curDoseUnit" class="unit">Gy</span>
+          </div>
+        </div>
+        <code id="curRaw" class="raw-line">ยังไม่มีข้อมูล</code>
+        <div class="stats">
+          <div><span>จำนวน</span><strong id="statN">0</strong></div>
+          <div><span>เฉลี่ย (A)</span><strong id="statMean">&mdash;</strong></div>
+          <div><span>SD (A)</span><strong id="statSd">&mdash;</strong></div>
+          <div><span>ต่ำสุด</span><strong id="statMin">&mdash;</strong></div>
+          <div><span>สูงสุด</span><strong id="statMax">&mdash;</strong></div>
+        </div>
+      </section>
+
+      <section class="card chart-card">
+        <div class="card-head">
+          <h2 id="chartTitle">แนวโน้ม</h2>
+          <select id="selMetric">
+            <option value="abs" selected>ค่าดูดกลืนแสง</option>
+            <option value="dose">โดส</option>
+          </select>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart" aria-label="กราฟค่าที่อ่านได้"></canvas>
+        </div>
+      </section>
+
+      <section class="card table-card">
+        <div id="readingsView" class="table-view">
+          <div class="card-head">
+            <h2>รายการที่อ่านได้ <span id="tblCount" class="badge">0</span></h2>
+            <div class="actions">
+              <button id="btnCsv" class="btn tiny" type="button">ส่งออก CSV</button>
+              <button id="btnClear" class="btn tiny danger" type="button">ล้างทั้งหมด</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>เวลา</th>
+                  <th>ค่า</th>
+                  <th>A</th>
+                  <th>โดส</th>
+                  <th>ข้อความดิบ</th>
+                  <th>หมายเหตุ</th>
+                  <th><span class="sr-only">จัดการ</span></th>
+                </tr>
+              </thead>
+              <tbody id="tblBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="energyView" class="table-view" hidden>
+          <div class="card-head">
+            <h2>ตารางวัดพลังงาน <span class="badge">Depth &middot; Ai &middot; Dose</span></h2>
+            <div class="actions">
+              <span class="muted">คลิกแถวเพื่อเลือกช่วง fit</span>
+              <button id="btnEnergyCsv" class="btn tiny" type="button">ส่งออก CSV</button>
+            </div>
+          </div>
+          <div class="energy-table-wrap">
+            <table class="energy-table">
+              <thead>
+                <tr><th>#</th><th>Depth (cm)</th><th>Ai</th><th>Dose</th></tr>
+              </thead>
+              <tbody id="energyRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="readingModal" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 id="modalTitle">ผลการอ่านค่า <span id="modalTime" class="muted"></span></h3>
+      <div class="modal-values">
+        <div class="modal-value">
+          <span class="eyebrow">Absorbance</span>
+          <strong id="modalAbs">&mdash;</strong>
+          <span id="modalAbsUnit" class="muted">A</span>
+        </div>
+        <div class="modal-value dose">
+          <span class="eyebrow">Dose</span>
+          <strong id="modalDose">&mdash;</strong>
+          <span id="modalDoseUnit" class="muted">kGy</span>
+        </div>
+      </div>
+      <p id="modalRaw" class="modal-raw">&mdash;</p>
+      <div class="modal-actions">
+        <button id="modalOk" class="btn primary" type="button">ตกลง (Enter)</button>
+      </div>
+    </div>
+  </div>
+
+  <section id="printReport" class="print-report" aria-hidden="true"></section>
+
+  <noscript>
+    <p class="noscript">หน้านี้ต้องใช้ JavaScript และเบราว์เซอร์ Chrome/Edge</p>
+  </noscript>
+
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

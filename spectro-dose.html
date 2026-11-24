@@ -1,0 +1,5370 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="color-scheme" content="light" />
+  <title>Spectro Dose Reader — Genesys 20</title>
+  <link rel="icon" href="data:," />
+  <style>
+:root {
+  --bg: #eef2f7;
+  --card: #ffffff;
+  --ink: #101828;
+  --ink-2: #475467;
+  --ink-3: #98a2b3;
+  --line: #e4e7ec;
+  --accent: #0f766e;
+  --accent-ink: #ffffff;
+  --accent-soft: #e6f4f2;
+  --danger: #b42318;
+  --danger-soft: #fef3f2;
+  --warn: #b54708;
+  --ok: #067647;
+  --radius: 14px;
+  --shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px -12px rgba(16, 24, 40, 0.18);
+  --mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, "Liberation Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body { margin: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", "Noto Sans Thai", "Leelawadee UI", system-ui, -apple-system, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, p { margin: 0; }
+
+code, pre, .mono { font-family: var(--mono); }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px clamp(16px, 3vw, 32px) 12px;
+  max-width: 1360px;
+  margin: 0 auto;
+}
+
+.brand { display: flex; align-items: center; gap: 14px; min-width: 0; }
+
+.logo {
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  color: #fff;
+  background: linear-gradient(145deg, #0f766e, #115e59);
+  box-shadow: var(--shadow);
+  flex: none;
+}
+
+.brand-text h1 { font-size: 19px; letter-spacing: -0.01em; }
+.brand-text p { color: var(--ink-2); font-size: 13px; }
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+
+.status-chip .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--ink-3);
+  box-shadow: 0 0 0 3px rgba(152, 162, 179, 0.18);
+}
+
+.status-chip[data-state="connected"] { color: var(--ok); border-color: #abefc6; background: #ecfdf3; }
+.status-chip[data-state="connected"] .dot { background: var(--ok); box-shadow: 0 0 0 3px rgba(6, 118, 71, 0.15); }
+.status-chip[data-state="demo"] { color: var(--warn); border-color: #fedf89; background: #fffaeb; }
+.status-chip[data-state="demo"] .dot { background: #dc6803; box-shadow: 0 0 0 3px rgba(220, 104, 3, 0.15); }
+.status-chip[data-state="error"] { color: var(--danger); border-color: #fecdca; background: var(--danger-soft); }
+.status-chip[data-state="error"] .dot { background: var(--danger); }
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  gap: 18px;
+  padding: 8px clamp(16px, 3vw, 32px) 40px;
+  max-width: 1360px;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.col-left, .col-right { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+}
+
+.card h2 {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--ink);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.card-head h2 { margin-bottom: 0; }
+
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field > span { font-size: 12px; font-weight: 600; color: var(--ink-2); }
+
+.port-field { margin-bottom: 12px; }
+.port-row { display: flex; gap: 8px; align-items: center; }
+.port-row select { flex: 1 1 auto; min-width: 0; }
+.port-row .btn { flex: none; }
+.btn.icon-only { padding: 8px 11px; font-size: 15px; line-height: 1; }
+.tiny-hint { margin-top: 6px; font-size: 11.5px; }
+
+.preset-row { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+
+input[type="text"],
+input[type="number"],
+select {
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid #d0d5dd;
+  border-radius: 9px;
+  padding: 8px 10px;
+  min-width: 0;
+  width: 100%;
+  height: 38px;
+}
+
+input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+input:disabled, select:disabled { background: #f9fafb; color: var(--ink-3); }
+
+.actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.btn {
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 9px;
+  border: 1px solid #d0d5dd;
+  background: #fff;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, transform 80ms ease;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) { background: #f9fafb; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover:not(:disabled) { background: #0d655e; }
+
+.btn.subtle { background: var(--accent-soft); border-color: transparent; color: #0b5f58; width: 100%; margin-top: 10px; }
+.btn.subtle:hover:not(:disabled) { background: #d7ece8; }
+.btn.subtle.primary { background: var(--accent); color: #fff; }
+.btn.subtle.primary:hover:not(:disabled) { background: #0d655e; }
+
+.btn.tiny { padding: 5px 10px; font-size: 12.5px; border-radius: 8px; }
+.btn.danger { color: var(--danger); border-color: #fecdca; }
+.btn.danger:hover:not(:disabled) { background: var(--danger-soft); }
+
+.hint { font-size: 12px; color: var(--ink-3); margin-top: 10px; line-height: 1.45; }
+.hint code { background: #f2f4f7; padding: 1px 5px; border-radius: 5px; font-size: 11.5px; }
+
+.mini-help {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+}
+.mini-help summary { font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.mini-help[open] summary { margin-bottom: 8px; }
+.help-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.help-list b { color: var(--ink); }
+.help-list .muted { display: inline-block; margin-top: 2px; }
+
+.formula {
+  margin-top: 12px;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border: 1px dashed #d0d5dd;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  text-align: center;
+}
+
+.switch { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px; margin-bottom: 10px; }
+.switch input { width: 16px; height: 16px; accent-color: var(--accent); margin: 0; }
+.switch.small { font-size: 12.5px; margin-bottom: 0; }
+
+.num-sm { width: 74px !important; height: 32px !important; padding: 4px 8px !important; }
+
+.inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.inline input[type="text"] { flex: 1 1 120px; width: auto; }
+.inline select { width: auto; flex: none; }
+
+.test-result {
+  margin-top: 10px;
+  font-size: 13px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  word-break: break-word;
+}
+.test-result[data-state="good"] { background: #ecfdf3; border-color: #abefc6; color: #05603a; }
+.test-result[data-state="bad"] { background: var(--danger-soft); border-color: #fecdca; color: #912018; }
+
+#regexField[hidden] { display: none; }
+
+details summary {
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+details summary::-webkit-details-marker { display: none; }
+details summary::before {
+  content: "โ–ธ";
+  color: var(--ink-3);
+  transition: transform 120ms ease;
+}
+details[open] summary::before { transform: rotate(90deg); }
+details[open] summary { margin-bottom: 12px; }
+
+.raw-log {
+  margin: 10px 0 0;
+  height: 180px;
+  overflow: auto;
+  background: #0b1220;
+  color: #d1fadf;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.reading { padding: 20px; }
+
+.reading-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+.eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-3); }
+.muted { color: var(--ink-3); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+
+.reading-main {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+  margin: 6px 0 4px;
+}
+
+.big {
+  font-size: clamp(44px, 7vw, 68px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.big .unit { font-size: 20px; font-weight: 600; color: var(--ink-3); letter-spacing: 0; }
+
+.dose-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  padding: 8px 14px;
+  border-radius: 12px;
+  background: var(--accent-soft);
+  border: 1px solid #c6e7e2;
+  transition: opacity 120ms ease;
+}
+.dose-box.off { opacity: 0.45; background: #f8fafc; border-color: var(--line); }
+.dose { font-size: 28px; font-weight: 700; color: #0b5f58; font-variant-numeric: tabular-nums; }
+.dose-box .unit { font-size: 12px; color: var(--ink-2); }
+
+.raw-line {
+  display: block;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--ink-2);
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.stats > div { display: flex; flex-direction: column; gap: 1px; }
+.stats span { font-size: 11.5px; color: var(--ink-3); }
+.stats strong { font-size: 15px; font-variant-numeric: tabular-nums; }
+
+.chart-wrap { position: relative; height: 230px; }
+#chart { width: 100%; height: 100%; display: block; }
+
+.table-wrap {
+  max-height: 430px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f9fafb;
+  text-align: left;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--ink-2);
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+tbody td {
+  padding: 7px 10px;
+  border-bottom: 1px solid #f2f4f7;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+tbody tr:hover { background: #fcfcfd; }
+tbody tr:last-child td { border-bottom: none; }
+
+td.num { color: var(--ink-3); font-size: 12px; }
+td.raw-cell {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink-2);
+}
+td.dose-cell strong { color: #0b5f58; }
+
+.note-input {
+  width: 100%;
+  min-width: 90px;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font: inherit;
+  font-size: 12.5px;
+}
+.note-input:hover { border-color: var(--line); background: #fff; }
+.note-input:focus { border-color: var(--accent); background: #fff; outline: none; }
+
+.icon-btn {
+  border: none;
+  background: transparent;
+  color: var(--ink-3);
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+.icon-btn:hover { color: var(--danger); background: var(--danger-soft); }
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  background: #f2f4f7;
+  color: var(--ink-2);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.empty-row td {
+  text-align: center;
+  color: var(--ink-3);
+  padding: 26px 12px;
+  font-size: 13px;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 20px);
+  background: #101828;
+  color: #fff;
+  font-size: 13.5px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px -8px rgba(16, 24, 40, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 160ms ease, transform 160ms ease;
+  z-index: 50;
+  max-width: min(90vw, 560px);
+  text-align: center;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.noscript { padding: 24px; text-align: center; color: var(--danger); }
+
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+  .col-left, .col-right { gap: 14px; }
+  .big { font-size: 52px; }
+  .table-wrap { max-height: 360px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+
+/* ---------- top action bar ---------- */
+[hidden] { display: none !important; }
+
+.actionbar {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  max-width: 1360px;
+  margin: 0 auto;
+  padding: 10px clamp(16px, 3vw, 32px);
+  background: rgba(238, 242, 247, 0.92);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(228, 231, 236, 0.7);
+}
+
+.actionbar .btn.primary { padding: 10px 22px; font-size: 15px; }
+.actionbar .btn { box-shadow: 0 1px 2px rgba(16, 24, 40, 0.05); }
+
+.action-note { font-size: 12px; color: var(--ink-3); margin-left: auto; }
+
+/* ---------- calibration table ---------- */
+#calPreview { margin-top: 4px; }
+.table-wrap.mini { max-height: 190px; }
+.table-wrap.mini table { font-size: 12px; }
+
+.cal-common { margin-top: 4px; }
+
+/* ---------- print report ---------- */
+.print-report { display: none; color: #101828; }
+
+.pr-head { border-bottom: 2px solid #0f766e; padding-bottom: 10px; margin-bottom: 14px; }
+.pr-head h1 { font-size: 19px; margin: 0 0 4px; }
+.pr-head p { font-size: 11.5px; color: #475467; margin: 0; }
+
+.pr-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  font-size: 11.5px;
+  margin-bottom: 14px;
+  padding: 10px 12px;
+  background: #f6f8fa;
+  border-radius: 8px;
+}
+.pr-meta b { display: block; font-size: 10.5px; color: #667085; font-weight: 600; }
+.pr-meta span { font-size: 12px; }
+
+.print-report table { width: 100%; border-collapse: collapse; font-size: 10px; }
+.print-report thead th {
+  position: static;
+  background: #f2f4f7;
+  border: 1px solid #d0d5dd;
+  padding: 5px 6px;
+  text-align: left;
+  font-size: 10px;
+  color: #344054;
+}
+.print-report tbody td { border: 1px solid #e4e7ec; padding: 4px 6px; }
+.print-report tfoot td { border: 1px solid #e4e7ec; padding: 5px 6px; font-weight: 600; }
+.pr-foot { margin-top: 12px; font-size: 10.5px; color: #667085; display: flex; justify-content: space-between; gap: 12px; }
+
+@media print {
+  @page { size: A4; margin: 12mm 10mm; }
+  body { background: #fff; }
+  .topbar, .actionbar, .main-tabs, .layout, .toast, .noscript { display: none !important; }
+  .print-report { display: block !important; }
+  .print-report thead { display: table-header-group; }
+  .print-report tr { page-break-inside: avoid; }
+}
+
+.cal-import {
+  margin-bottom: 12px;
+  padding: 10px;
+  border: 1px dashed #d0d5dd;
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+.cal-import .inline { margin-bottom: 6px; }
+.cal-import .hint { margin-top: 6px; }
+
+.pr-chart { margin: 0 0 12px; page-break-inside: avoid; }
+.pr-chart img {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 62mm;
+  object-fit: contain;
+  border: 1px solid #e4e7ec;
+  border-radius: 6px;
+  background: #fff;
+}
+.pr-chart figcaption { margin-top: 4px; font-size: 9.5px; color: #667085; }
+
+.pr-note {
+  margin: 2px 0 10px;
+  padding: 6px 9px;
+  font-size: 10.5px;
+  color: #b54708;
+  background: #fffaeb;
+  border: 1px solid #fedf89;
+  border-radius: 6px;
+}
+
+.cal-test {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed #e4e7ec;
+}
+.cal-test-label { font-size: 12px; font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.cal-test input { width: 110px; height: 34px; }
+.cal-test-result { font-size: 12.5px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.cal-test-result[data-state="good"] { color: var(--ok); font-weight: 600; }
+.cal-test-result[data-state="bad"] { color: var(--danger); }
+
+/* ---------- reading popup ---------- */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(16, 24, 40, 0.45);
+  backdrop-filter: blur(3px);
+}
+
+.modal-card {
+  width: min(460px, 100%);
+  background: #fff;
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 24px 60px -20px rgba(16, 24, 40, 0.45);
+}
+
+.modal-card h3 { margin: 0 0 14px; font-size: 15px; display: flex; align-items: baseline; gap: 8px; }
+
+.modal-values { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.modal-value {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+}
+.modal-value strong { font-size: 34px; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.modal-value.dose { background: var(--accent-soft); border-color: #c6e7e2; }
+.modal-value.dose strong { color: #0b5f58; }
+
+.modal-raw {
+  margin: 12px 0 0;
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modal-actions { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+@media print {
+  .modal-backdrop { display: none !important; }
+}
+
+/* ---------- full width + tabs + one-screen layout ---------- */
+.topbar, .actionbar { max-width: none; }
+
+.layout {
+  max-width: none;
+  width: 100%;
+  padding: 8px 18px 14px;
+  grid-template-columns: minmax(340px, 440px) minmax(0, 1fr);
+}
+
+.tabs { display: flex; gap: 6px; flex: none; }
+
+.tab {
+  flex: 1 1 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.tab.is-active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+.tab-panels { min-height: 0; }
+.tab-panel { display: none; }
+.tab-panel.is-active { display: flex; flex-direction: column; gap: 12px; }
+
+@media (min-width: 981px) {
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; overflow: hidden; }
+
+  .topbar, .actionbar { flex: none; }
+
+  .layout {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+    overflow: hidden;
+  }
+
+  .col-left, .col-right { height: 100%; min-height: 0; overflow: hidden; }
+  .col-left { display: flex; flex-direction: column; }
+  .tab-panels { flex: 1 1 auto; overflow: auto; padding-right: 2px; }
+
+  .col-right { display: flex; flex-direction: column; gap: 12px; }
+  .col-right .reading,
+  .col-right .chart-card { flex: none; }
+  .col-right .table-card {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .col-right .table-card .card-head { flex: none; }
+  .col-right .table-card .table-wrap { flex: 1 1 auto; min-height: 0; max-height: none; }
+}
+
+@media (min-width: 981px) and (max-height: 860px) {
+  .card { padding: 14px; }
+  .big { font-size: 44px; }
+  .chart-wrap { height: 150px; }
+  .stats { margin-top: 8px; padding-top: 8px; gap: 6px; }
+  .reading-main { margin: 2px 0; }
+  .raw-line { margin-top: 6px; }
+}
+
+@media (min-width: 981px) {
+  .topbar, .actionbar { margin: 0; width: 100%; box-sizing: border-box; }
+  .col-right .chart-card .chart-wrap { height: clamp(150px, 18vh, 210px); }
+  .big { font-size: clamp(42px, 5vw, 60px); }
+}
+
+/* ---------- compact mode for short screens ---------- */
+@media (min-width: 981px) and (max-height: 860px) {
+  .card { padding: 12px; }
+  .big { font-size: 40px; }
+  .reading-main { margin: 0; }
+  .raw-line { margin-top: 4px; padding: 5px 8px; font-size: 11px; }
+  .stats { margin-top: 6px; padding-top: 6px; }
+  .stats strong { font-size: 13px; }
+  .stats span { font-size: 10.5px; }
+  .dose { font-size: 22px; }
+  .col-right { gap: 10px; }
+  .col-right .chart-card .chart-wrap { height: 120px; }
+  .col-right .chart-card .card-head { margin-bottom: 8px; }
+  .col-right .table-card .card-head { margin-bottom: 8px; }
+}
+
+/* ---------- right pane: reading + chart side by side, table below ---------- */
+@media (min-width: 981px) {
+  .col-right {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 12px;
+  }
+  .col-right .reading { grid-area: 1 / 1 / 2 / 2; }
+  .col-right .chart-card { grid-area: 1 / 2 / 2 / 3; }
+  .col-right .table-card { grid-area: 2 / 1 / 3 / 3; }
+  .col-right .chart-card .chart-wrap { height: clamp(150px, 20vh, 220px); }
+}
+
+@media (min-width: 981px) and (max-height: 860px) {
+  .col-right .chart-card .chart-wrap { height: 120px; }
+}
+
+/* ---------- energy tab ---------- */
+.energy-actions { margin: 10px 0 8px; }
+
+.energy-table-wrap {
+  max-height: 220px;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.energy-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.energy-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #f9fafb;
+  padding: 5px 6px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  font-size: 10.5px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.energy-table td { padding: 2px 4px; border-bottom: 1px solid #f2f4f7; }
+.energy-table td:first-child { width: 26px; color: var(--ink-3); }
+.energy-table input { height: 28px; padding: 2px 6px; font-size: 12px; border-radius: 7px; }
+.energy-table td.dose-cell { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-2); white-space: nowrap; }
+
+.energy-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+.energy-results > div {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 9px;
+}
+.energy-results span { font-size: 10.5px; color: var(--ink-3); }
+.energy-results strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+.energy-results > div:nth-child(4),
+.energy-results > div:nth-child(5) { background: var(--accent-soft); border-color: #c6e7e2; }
+.energy-results > div:nth-child(4) strong,
+.energy-results > div:nth-child(5) strong { color: #0b5f58; }
+
+/* ---------- energy simulation box ---------- */
+.sim-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  margin: 10px 0 4px;
+  padding: 8px 10px;
+  border: 1px dashed #b9d9d4;
+  border-radius: 10px;
+  background: #f4fbfa;
+}
+.sim-box .sim-field { flex: 1 1 auto; margin: 0; }
+.sim-box .sim-field input { height: 34px; }
+.sim-box .btn { flex: none; height: 34px; padding: 0 14px; }
+
+.energy-chart-wrap {
+  height: 180px;
+  margin-top: 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  padding: 4px;
+}
+#energyChart { width: 100%; height: 100%; display: block; }
+
+.energy-r2 {
+  margin: 6px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ink-3);
+  font-variant-numeric: tabular-nums;
+}
+.energy-r2[data-state="good"] { color: var(--ok); }
+.energy-r2[data-state="bad"] { color: var(--warn); }
+
+.energy-table tbody tr { cursor: pointer; }
+.energy-table tbody tr.selected { background: #e6f4f2; }
+.energy-table tbody tr.selected td:first-child { font-weight: 700; color: #0b5f58; }
+
+/* energy report section */
+.pr-energy { margin-top: 18px; }
+.pr-energy h2 { font-size: 15px; margin: 0 0 8px; }
+.pr-energy .pr-chart { margin: 8px 0; }
+
+/* ---------- energy table moved to the main (right) pane ---------- */
+.table-view { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+.table-view[hidden] { display: none; }
+.energy-table input { width: 100%; box-sizing: border-box; }
+
+@media (min-width: 981px) {
+  .col-right .table-card .energy-table-wrap { flex: 1 1 auto; min-height: 0; max-height: none; }
+  .col-right .table-card .energy-table { font-size: 13px; }
+  .col-right .table-card .energy-table thead th { font-size: 11.5px; padding: 7px 8px; }
+  .col-right .table-card .energy-table input { height: 32px; font-size: 13px; }
+  .col-right .table-card .energy-table td { padding: 3px 6px; }
+}
+
+@media (min-width: 981px) {
+  .col-right .table-card .energy-table td:nth-child(2) input { max-width: 130px; }
+  .col-right .table-card .energy-table td:nth-child(3) input { max-width: 150px; }
+  .col-right .table-card .energy-table td:nth-child(4) { text-align: right; }
+}
+
+/* ---------- energy mode: ซ่อนการ์ดค่าล่าสุด ขยายกราฟให้เต็ม ---------- */
+@media (min-width: 981px) {
+  .col-right.energy-mode .reading { display: none; }
+  .col-right.energy-mode .chart-card { grid-area: 1 / 1 / 2 / 3; }
+  .col-right.energy-mode .chart-card .chart-wrap { height: clamp(220px, 30vh, 320px); }
+}
+
+/* ---------- main tabs (outside columns) ---------- */
+.main-tabs {
+  margin: 0 0 8px;
+  padding: 0 18px;
+  max-width: none;
+}
+.main-tabs .tab { flex: 0 1 auto; min-width: 120px; }
+
+@media (min-width: 981px) {
+  .layout.mode-solo { grid-template-columns: minmax(0, 1fr); }
+  .layout.mode-solo .col-right { display: none; }
+  .layout.mode-solo .tab-panels { max-width: 980px; margin: 0 auto; width: 100%; }
+
+  .layout.mode-reading { grid-template-columns: minmax(0, 1fr); }
+  .layout.mode-reading .col-left { display: none; }
+}
+</style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">&#955;</div>
+      <div class="brand-text">
+        <h1>Spectro Dose Reader</h1>
+        <p>อ่านค่าดูดกลืนแสง/โดสจาก Thermo Genesys 20 ผ่าน Serial Port</p>
+      </div>
+    </div>
+    <div id="statusChip" class="status-chip" data-state="idle">
+      <span class="dot" aria-hidden="true"></span>
+      <span id="statusText">ยังไม่เชื่อมต่อ</span>
+    </div>
+  </header>
+
+  <div class="actionbar">
+    <button id="btnSndTop" class="btn primary" type="button" disabled title="อ่านค่า SND (คีย์ลัด Ctrl+Shift ซ้าย)">อ่านค่า (SND)</button>
+    <button id="btnImportCalTop" class="btn" type="button">นำเข้าตารางสอบเทียบ</button>
+    <button id="btnReportXlsx" class="btn" type="button">รายงาน Excel</button>
+    <button id="btnReportPdf" class="btn" type="button">รายงาน PDF</button>
+    <span id="actionNote" class="action-note">เชื่อมต่อก่อนเพื่อกดอ่านค่า &middot; คีย์ลัด Ctrl+Shift (ซ้าย)</span>
+  </div>
+
+  <nav class="tabs main-tabs" role="tablist" aria-label="เมนูหลัก">
+    <button class="tab" type="button" role="tab" aria-selected="false" data-tab="reading">อ่านโดส</button>
+    <button class="tab" type="button" role="tab" aria-selected="false" data-tab="energy">พลังงาน</button>
+    <button class="tab" type="button" role="tab" aria-selected="false" data-tab="cal">สอบเทียบ</button>
+    <button class="tab is-active" type="button" role="tab" aria-selected="true" data-tab="connect">เชื่อมต่อ / คำสั่ง</button>
+  </nav>
+
+  <main class="layout mode-solo">
+    <aside class="col-left">
+      <div class="tab-panels">
+        <section class="tab-panel is-active" data-panel="connect" role="tabpanel">
+      <section class="card">
+        <h2>1 &middot; เชื่อมต่อเครื่อง</h2>
+        <div class="field port-field">
+          <span>พอร์ต (COM)</span>
+          <div class="port-row">
+            <select id="selPort" aria-label="พอร์ตที่ใช้เชื่อมต่อ">
+              <option value="">— ยังไม่มีพอร์ตที่อนุญาต —</option>
+            </select>
+            <button id="btnPickPort" class="btn" type="button">เลือกพอร์ต…</button>
+            <button id="btnRefreshPorts" class="btn icon-only" type="button" title="สแกนรายการพอร์ตที่อนุญาตแล้วใหม่" aria-label="รีเฟรชรายการพอร์ต">&#8635;</button>
+          </div>
+          <p class="hint tiny-hint">เบราว์เซอร์ไม่แสดงเลข COM ของ Windows — จะแสดงเป็นลำดับพร้อมรุ่นชิป USB &middot; เลือกผิดให้ตัดการเชื่อมต่อแล้วเลือกใหม่</p>
+        </div>
+        <div class="grid-2">
+          <label class="field">
+            <span>Baud rate</span>
+            <select id="selBaud">
+              <option value="1200">1200</option>
+              <option value="2400">2400</option>
+              <option value="4800">4800</option>
+              <option value="9600" selected>9600</option>
+              <option value="19200">19200</option>
+              <option value="38400">38400</option>
+              <option value="57600">57600</option>
+              <option value="115200">115200</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Data bits</span>
+            <select id="selDataBits">
+              <option value="8" selected>8</option>
+              <option value="7">7</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Stop bits</span>
+            <select id="selStopBits">
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Parity</span>
+            <select id="selParity">
+              <option value="none" selected>none</option>
+              <option value="even">even</option>
+              <option value="odd">odd</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>Flow control</span>
+            <select id="selFlow">
+              <option value="none" selected>none</option>
+              <option value="hardware">hardware</option>
+            </select>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="btnConnect" class="btn primary" type="button">เชื่อมต่อ</button>
+          <button id="btnDisconnect" class="btn" type="button" disabled>ตัดการเชื่อมต่อ</button>
+        </div>
+        <button id="btnDemo" class="btn subtle" type="button">ทดลองด้วยข้อมูลจำลอง</button>
+        <p class="hint">
+          ใช้ Chrome หรือ Edge เท่านั้น &middot; เปิดไฟล์ตรง ๆ หรือผ่าน <code>http://localhost</code> ก็ได้
+          &middot; ค่าเริ่มต้น 9600&nbsp;8-N-1 ปรับให้ตรงกับเครื่อง
+        </p>
+        <details class="mini-help">
+          <summary>ให้เครื่องส่งค่าออกมา ต้องกดอะไร</summary>
+          <ol class="help-list">
+            <li><b>Utility</b> &rarr; <b>Printer setup</b> &rarr; Change &rarr; เลือก <b>Serial</b> &rarr; Accept<br />
+              <span class="muted">ถ้าเป็น OFF / Internal / Parallel ค่าจะไม่ถูกส่งออกพอร์ต RS-232</span></li>
+            <li><b>Utility</b> &rarr; <b>RS232</b> &rarr; ตั้ง baud ให้ตรงกับช่องด้านบน (ปกติ 9600, 8, none, 1) &rarr; Accept</li>
+            <li>กลับไปโหมดวัด (A/T/C) แล้วกด <b>Print</b> หนึ่งครั้ง = ส่งค่าที่ค้างบนจอ 1 ค่า</li>
+          </ol>
+        </details>
+      </section>
+
+      <section class="card">
+        <h2>2 &middot; สั่งอ่านค่าจากคอมพิวเตอร์</h2>
+        <div class="preset-row">
+          <button id="btnCmdModel" class="btn tiny" type="button" disabled>รุ่น (MODEL)</button>
+          <button id="btnCmdRev" class="btn tiny" type="button" disabled>เวอร์ชัน (REV)</button>
+        </div>
+        <div class="inline">
+          <input id="inpCommand" type="text" placeholder="SND" spellcheck="false" />
+          <select id="selLineEnding">
+            <option value="CRLF">CR LF</option>
+            <option value="LF">LF</option>
+            <option value="CR" selected>CR</option>
+            <option value="NONE">ไม่มี</option>
+          </select>
+          <button id="btnSend" class="btn" type="button" disabled>ส่ง</button>
+        </div>
+        <label class="switch">
+          <input id="chkPoll" type="checkbox" />
+          <span>ส่งซ้ำอัตโนมัติทุก</span>
+          <input id="inpPollSec" type="number" min="0.2" step="0.1" value="1" class="num-sm" />
+          <span>วินาที</span>
+        </label>
+        <p class="hint">
+          รุ่นนี้รับคำสั่ง <code>SND</code> แล้วจะส่งค่าอ่านกลับมาทันที (9600 8-N-1) — ไม่ต้องกด Print ที่เครื่อง
+          &middot; เปิด “ส่งซ้ำอัตโนมัติ” เพื่ออ่านต่อเนื่อง
+        </p>
+      </section>
+
+      <section class="card">
+        <details id="rawDetails">
+          <summary>ข้อมูลดิบจากพอร์ต (ใช้หา baud / รูปแบบ)</summary>
+          <div class="inline">
+            <label class="switch small">
+              <input id="chkHex" type="checkbox" />
+              <span>แสดงเป็น HEX</span>
+            </label>
+            <button id="btnClearRaw" class="btn tiny" type="button">ล้าง</button>
+          </div>
+          <pre id="rawLog" class="raw-log" tabindex="0"></pre>
+          <p class="hint" id="ignoredHits">บรรทัดที่แยกค่าไม่ได้: 0</p>
+        </details>
+      </section>
+        </section>
+
+        <section class="tab-panel" data-panel="cal" role="tabpanel">
+      <section class="card">
+        <h2>3 &middot; วิธีอ่านค่า</h2>
+        <label class="field">
+          <span>รูปแบบข้อมูลที่เครื่องส่งมา</span>
+          <select id="selMode"></select>
+        </label>
+        <label class="field" id="regexField" hidden>
+          <span>Regex (ใช้ named group <code>value</code> หรือ group&nbsp;1)</span>
+          <input id="inpRegex" type="text" spellcheck="false" placeholder="(?&lt;value&gt;[-+]?\d+[.,]\d+)\s*(?&lt;unit&gt;A|T)" />
+        </label>
+        <label class="field">
+          <span>ทดสอบกับข้อความตัวอย่าง</span>
+          <input id="testLine" type="text" spellcheck="false" placeholder="600NM 0.412 A" />
+        </label>
+        <p id="testResult" class="test-result" aria-live="polite">&mdash;</p>
+        <p class="hint">ถ้ายังไม่รู้รูปแบบ ให้เปิด &ldquo;ข้อมูลดิบ&rdquo; ด้านล่าง แล้วกด Print บนเครื่องหนึ่งครั้ง</p>
+      </section>
+
+      <section class="card">
+        <h2>4 &middot; แปลงเป็นโดส</h2>
+        <label class="switch">
+          <input id="chkCalib" type="checkbox" />
+          <span>เปิดใช้เส้นสอบเทียบ</span>
+        </label>
+
+        <div class="cal-import">
+          <div class="inline">
+            <button id="btnImportCal" class="btn" type="button">นำเข้าตารางสอบเทียบ (Excel / CSV)</button>
+            <button id="btnClearCal" class="btn tiny danger" type="button">ล้างตาราง</button>
+          </div>
+          <input id="inpCalFile" type="file" accept=".xlsx,.xls,.csv,.txt" hidden />
+          <p id="calTableInfo" class="hint">ยังไม่มีตาราง — นำเข้าไฟล์ Excel ที่มีคอลัมน์ Absorbance กับ Dose</p>
+          <div class="cal-test">
+            <span class="cal-test-label">ทดสอบค่า A</span>
+            <input id="inpCalTest" type="number" step="0.001" inputmode="decimal" placeholder="0.250" />
+            <span id="calTestResult" class="cal-test-result">&mdash;</span>
+          </div>
+          <details id="calPreview" hidden>
+            <summary>ดูจุดสอบเทียบ</summary>
+            <div class="table-wrap mini">
+              <table>
+                <thead>
+                  <tr><th>#</th><th>Absorbance</th><th>Dose</th></tr>
+                </thead>
+                <tbody id="calPreviewBody"></tbody>
+              </table>
+            </div>
+          </details>
+        </div>
+
+        <label class="field">
+          <span>วิธีคำนวณ</span>
+          <select id="selCalMode">
+            <option value="formula">สูตร k<sub>1</sub> / k<sub>2</sub></option>
+            <option value="table">ตารางสอบเทียบ (import จาก Excel)</option>
+          </select>
+        </label>
+
+        <div class="grid-2" id="formulaFields">
+          <label class="field">
+            <span>k<sub>1</sub> (โดส/AU)</span>
+            <input id="inpK1" type="number" step="any" value="1" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>k<sub>2</sub> (โดส/AU<sup>2</sup>)</span>
+            <input id="inpK2" type="number" step="any" value="0" inputmode="decimal" />
+          </label>
+        </div>
+
+        <div class="grid-2 cal-common">
+          <label class="field" id="a0Field">
+            <span>A<sub>0</sub> (blank)</span>
+            <input id="inpA0" type="number" step="0.001" value="0" inputmode="decimal" />
+          </label>
+          <label class="field">
+            <span>หน่วยโดส</span>
+            <select id="selDoseUnit">
+              <option value="Gy" selected>Gy</option>
+              <option value="mGy">mGy</option>
+              <option value="cGy">cGy</option>
+              <option value="kGy">kGy</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="formula" id="calFormula">D = k<sub>1</sub>&middot;(A &minus; A<sub>0</sub>) + k<sub>2</sub>&middot;(A &minus; A<sub>0</sub>)<sup>2</sup></p>
+        <button id="btnSetA0" class="btn subtle" type="button">ตั้ง A<sub>0</sub> = ค่าล่าสุด</button>
+      </section>
+        </section>
+
+        <section class="tab-panel" data-panel="energy" role="tabpanel">
+      <section class="card">
+        <h2>5 &middot; วัดพลังงาน (อิเล็กตรอน)</h2>
+        <p class="hint">อ่านค่าด้วย SND/Print ขณะอยู่แท็บนี้ — ค่า Ai จะเติมตามลำดับ 0.1812 → 5.6633 อัตโนมัติ</p>
+        <p id="energyCalInfo" class="hint">ใช้ตารางสอบเทียบจากแท็บสอบเทียบ (A → Dose)</p>
+
+        <div class="sim-box">
+          <label class="field sim-field">
+            <span>โหมดจำลอง — พลังงาน (MeV)</span>
+            <input id="inpSimEnergy" type="number" step="0.1" min="1" value="10" inputmode="decimal" />
+          </label>
+          <button id="btnSimRun" class="btn primary" type="button">ตกลง / จำลอง</button>
+        </div>
+        <p class="hint">จำลอง depth–dose แบบ PDD ตามพลังงานที่ใส่ แล้วเติม Ai ให้ทั้ง 60 แถว (ใช้ตารางสอบเทียบจากแท็บสอบเทียบ)</p>
+
+        <label class="switch">
+          <input id="chkEnergyAutoFit" type="checkbox" checked />
+          <span>เลือกช่วงอัตโนมัติ (R² ใกล้ 1 ที่สุด)</span>
+        </label>
+        <p class="hint">หรือเลือกเองโดย <b>คลิกที่แถว</b> ในตาราง: คลิกแรก = จุดเริ่ม, คลิกที่สอง = จุดสิ้นสุด (หรือพิมพ์เลขแถวด้านล่าง) — ระบบจะแสดง R² ของช่วงที่เลือก</p>
+        <div class="grid-2" id="energyFitFields">
+          <label class="field">
+            <span>Fit แถวเริ่ม</span>
+            <input id="inpEnergyFitFrom" type="number" min="1" step="1" value="1" />
+          </label>
+          <label class="field">
+            <span>Fit แถวสิ้นสุด</span>
+            <input id="inpEnergyFitTo" type="number" min="1" step="1" value="2" />
+          </label>
+        </div>
+        <p id="energyR2" class="energy-r2">R² = —</p>
+
+        <div class="inline energy-actions">
+          <button id="btnEnergyAdd" class="btn tiny" type="button">+ เพิ่มแถว</button>
+          <button id="btnEnergyCapture" class="btn tiny" type="button">เก็บค่าล่าสุด</button>
+          <button id="btnEnergyClear" class="btn tiny danger" type="button">ล้างข้อมูล</button>
+          <span id="energyProgress" class="muted">0/60</span>
+        </div>
+
+        <div class="energy-results">
+          <div><span>Dmax</span><strong id="enDmax">&mdash;</strong></div>
+          <div><span>R50 (cm)</span><strong id="enR50">&mdash;</strong></div>
+          <div><span>Rp (cm)</span><strong id="enRp">&mdash;</strong></div>
+          <div><span>Ea (MeV)</span><strong id="enEa">&mdash;</strong></div>
+          <div><span>Ep (MeV)</span><strong id="enEp">&mdash;</strong></div>
+        </div>
+        <p id="energyNote" class="hint">กรอก Depth/Ai แล้วผลจะคำนวณอัตโนมัติ</p>
+      </section>
+        </section>
+      </div>
+    </aside>
+
+    <section class="col-right">
+      <section class="card reading">
+        <div class="reading-top">
+          <span class="eyebrow">ค่าล่าสุด</span>
+          <span id="curTime" class="muted">&mdash;</span>
+        </div>
+        <div class="reading-main">
+          <div class="big">
+            <span id="curValue">&mdash;</span><span id="curUnit" class="unit">A</span>
+          </div>
+          <div id="doseBox" class="dose-box off">
+            <span class="eyebrow">โดส</span>
+            <span id="curDose" class="dose">&mdash;</span>
+            <span id="curDoseUnit" class="unit">Gy</span>
+          </div>
+        </div>
+        <code id="curRaw" class="raw-line">ยังไม่มีข้อมูล</code>
+        <div class="stats">
+          <div><span>จำนวน</span><strong id="statN">0</strong></div>
+          <div><span>เฉลี่ย (A)</span><strong id="statMean">&mdash;</strong></div>
+          <div><span>SD (A)</span><strong id="statSd">&mdash;</strong></div>
+          <div><span>ต่ำสุด</span><strong id="statMin">&mdash;</strong></div>
+          <div><span>สูงสุด</span><strong id="statMax">&mdash;</strong></div>
+        </div>
+      </section>
+
+      <section class="card chart-card">
+        <div class="card-head">
+          <h2 id="chartTitle">แนวโน้ม</h2>
+          <select id="selMetric">
+            <option value="abs" selected>ค่าดูดกลืนแสง</option>
+            <option value="dose">โดส</option>
+          </select>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="chart" aria-label="กราฟค่าที่อ่านได้"></canvas>
+        </div>
+      </section>
+
+      <section class="card table-card">
+        <div id="readingsView" class="table-view">
+          <div class="card-head">
+            <h2>รายการที่อ่านได้ <span id="tblCount" class="badge">0</span></h2>
+            <div class="actions">
+              <button id="btnCsv" class="btn tiny" type="button">ส่งออก CSV</button>
+              <button id="btnClear" class="btn tiny danger" type="button">ล้างทั้งหมด</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>เวลา</th>
+                  <th>ค่า</th>
+                  <th>A</th>
+                  <th>โดส</th>
+                  <th>ข้อความดิบ</th>
+                  <th>หมายเหตุ</th>
+                  <th><span class="sr-only">จัดการ</span></th>
+                </tr>
+              </thead>
+              <tbody id="tblBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="energyView" class="table-view" hidden>
+          <div class="card-head">
+            <h2>ตารางวัดพลังงาน <span class="badge">Depth &middot; Ai &middot; Dose</span></h2>
+            <div class="actions">
+              <span class="muted">คลิกแถวเพื่อเลือกช่วง fit</span>
+              <button id="btnEnergyCsv" class="btn tiny" type="button">ส่งออก CSV</button>
+            </div>
+          </div>
+          <div class="energy-table-wrap">
+            <table class="energy-table">
+              <thead>
+                <tr><th>#</th><th>Depth (cm)</th><th>Ai</th><th>Dose</th></tr>
+              </thead>
+              <tbody id="energyRows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <div id="readingModal" class="modal-backdrop" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <h3 id="modalTitle">ผลการอ่านค่า <span id="modalTime" class="muted"></span></h3>
+      <div class="modal-values">
+        <div class="modal-value">
+          <span class="eyebrow">Absorbance</span>
+          <strong id="modalAbs">&mdash;</strong>
+          <span id="modalAbsUnit" class="muted">A</span>
+        </div>
+        <div class="modal-value dose">
+          <span class="eyebrow">Dose</span>
+          <strong id="modalDose">&mdash;</strong>
+          <span id="modalDoseUnit" class="muted">kGy</span>
+        </div>
+      </div>
+      <p id="modalRaw" class="modal-raw">&mdash;</p>
+      <div class="modal-actions">
+        <button id="modalOk" class="btn primary" type="button">ตกลง (Enter)</button>
+      </div>
+    </div>
+  </div>
+
+  <section id="printReport" class="print-report" aria-hidden="true"></section>
+
+  <noscript>
+    <p class="noscript">หน้านี้ต้องใช้ JavaScript และเบราว์เซอร์ Chrome/Edge</p>
+  </noscript>
+
+  <script>
+(function () {
+'use strict';
+/* ===== js/parser.js ===== */
+/**
+ * ตัวแยกวิเคราะห์บรรทัดข้อความที่เครื่องสเปกโตรโฟโตมิเตอร์ส่งออกมาทางพอร์ตอนุกรม
+ * ทุกฟังก์ชันเป็น pure function เพื่อให้ทดสอบได้ด้วย node --test โดยไม่ต้องมีเบราว์เซอร์
+ */
+const MODES = [
+  { id: 'auto', label: 'อัตโนมัติ (ข้ามความยาวคลื่น/วันที่)' },
+  { id: 'first', label: 'ตัวเลขตัวแรกในบรรทัด' },
+  { id: 'last', label: 'ตัวเลขตัวสุดท้ายในบรรทัด' },
+  { id: 'custom', label: 'กำหนดเอง (regex)' },
+];
+const REASONS = {
+  empty: 'บรรทัดว่าง',
+  'no-number': 'ไม่พบตัวเลขในบรรทัด',
+  'no-match': 'regex ไม่ตรงกับบรรทัดนี้',
+  'bad-regex': 'regex ไม่ถูกต้อง',
+};
+
+const NUMBER_RE = /[-+]?\d+(?:[.,]\d+)?/g;
+
+/** แปลงข้อความเป็นตัวเลข โดยรองรับจุดทศนิยมแบบจุลภาค (0,412 -> 0.412) */
+function toNumber(token) {
+  if (token === null || token === undefined) return NaN;
+  const text = String(token).trim().replace(/,/g, '.');
+  if (!text) return NaN;
+  return Number(text);
+}
+
+/**
+ * เดาหน่วยของค่าที่อ่านได้: 'A' = absorbance, '%T' = transmittance
+ * ถ้า regex ระบุหน่วยมาให้ (group ชื่อ unit) จะใช้ค่านั้นก่อน
+ */
+function detectUnit(line, explicit) {
+  const raw = explicit === null || explicit === undefined ? '' : String(explicit).trim().toUpperCase();
+
+  if (raw) {
+    if (raw.includes('%')) return '%T';
+    if (raw === 'T' || raw === 'TRANS' || raw === 'TRANSMITTANCE') return '%T';
+    if (raw === 'A' || raw === 'ABS' || raw === 'ABSORBANCE') return 'A';
+    return raw;
+  }
+
+  const hasPercent = /%/.test(line);
+  const hasAbs = /\bABS\b/i.test(line) || /[-+]?\d+(?:[.,]\d+)?\s*A\b/i.test(line);
+  const hasTrans = /\bT\b/i.test(line);
+
+  if (hasPercent && !hasAbs) return '%T';
+  if (hasTrans && !hasAbs) return '%T';
+  return 'A';
+}
+
+function result(ok, value, unit, text, reason) {
+  return { ok, value: ok ? value : null, unit: ok ? unit : null, text: text ?? '', reason: reason ?? '' };
+}
+
+/**
+ * ตัดข้อมูลรบกวนออกก่อนหา "ตัวเลขที่น่าจะเป็นค่าที่อ่านได้"
+ * เช่น 600NM (ความยาวคลื่น), 23/11/2026 (วันที่), 17:11 (เวลา)
+ */
+function stripNoise(line) {
+  return line
+    .replace(/\b\d{1,4}\s*nm\b/gi, ' ')
+    .replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, ' ')
+    .replace(/\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b/g, ' ');
+}
+
+/**
+ * โหมดอัตโนมัติ: ถ้ามีตัวเลขที่มีจุดทศนิยมให้เลือกตัวสุดท้าย
+ * (ค่าที่วัดได้มักมีทศนิยม ขณะที่รหัส/ลำดับมักเป็นจำนวนเต็ม) ถ้าไม่มีเลยให้ใช้ตัวสุดท้าย
+ * และถ้าบรรทัดนั้นไม่มีทศนิยมเลย จะรับเฉพาะบรรทัดที่เป็น "ค่าเดียว" จริง ๆ
+ * เพื่อไม่ให้บรรทัดสถานะอย่าง "GENESYS 20 READY" ถูกอ่านเป็นค่า 20
+ */
+function autoParse(line) {
+  const cleaned = stripNoise(line);
+  const tokens = [...cleaned.matchAll(NUMBER_RE)].map((m) => m[0]);
+  if (tokens.length === 0) return result(false, null, null, '', 'no-number');
+
+  const decimals = tokens.filter((t) => /[.,]/.test(t));
+  const token = decimals.length > 0 ? decimals[decimals.length - 1] : tokens[tokens.length - 1];
+  const value = toNumber(token);
+
+  if (!Number.isFinite(value)) return result(false, null, null, token, 'no-number');
+
+  if (decimals.length === 0) {
+    const leftover = cleaned
+      .replace(/^\s*(?:ABS|A|T|%T)\s+/i, '')
+      .replace(/[-+]?\d+(?:[.,]\d+)?\s*(?:ABS|A|T|%T|%)?\s*$/i, '')
+      .trim();
+    if (/[A-Za-z]/.test(leftover)) return result(false, null, null, token, 'no-number');
+  }
+
+  return result(true, value, detectUnit(line), token, '');
+}
+
+/**
+ * @param {string} rawLine ข้อความหนึ่งบรรทัดจากพอร์ต
+ * @param {{mode?: string, regex?: string}} cfg
+ * @returns {{ok: boolean, value: number|null, unit: string|null, text: string, reason: string}}
+ */
+function parseLine(rawLine, cfg = {}) {
+  const line = String(rawLine ?? '')
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '')
+    .trim();
+
+  if (!line) return result(false, null, null, '', 'empty');
+
+  const mode = cfg.mode || 'auto';
+
+  if (mode === 'custom') {
+    let re;
+    try {
+      re = new RegExp(String(cfg.regex || ''), 'i');
+    } catch {
+      return result(false, null, null, '', 'bad-regex');
+    }
+    if (!String(cfg.regex || '').trim()) return result(false, null, null, '', 'bad-regex');
+
+    const m = line.match(re);
+    if (!m) return result(false, null, null, '', 'no-match');
+
+    const rawValue = (m.groups && m.groups.value) ?? m[1];
+    const rawUnit = (m.groups && m.groups.unit) ?? m[2];
+    const value = toNumber(rawValue);
+    if (!Number.isFinite(value)) return result(false, null, null, '', 'no-number');
+
+    return result(true, value, detectUnit(line, rawUnit), String(rawValue), '');
+  }
+
+  if (mode === 'first' || mode === 'last') {
+    const tokens = [...line.matchAll(NUMBER_RE)].map((m) => m[0]);
+    if (tokens.length === 0) return result(false, null, null, '', 'no-number');
+
+    const token = mode === 'first' ? tokens[0] : tokens[tokens.length - 1];
+    const value = toNumber(token);
+    if (!Number.isFinite(value)) return result(false, null, null, token, 'no-number');
+
+    return result(true, value, detectUnit(line), token, '');
+  }
+
+  return autoParse(line);
+}
+
+/** แปลง %T เป็น absorbance (ใช้คำนวณโดสเมื่อเครื่องส่งค่า transmittance) */
+function toAbsorbance(value, unit) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  if (unit !== '%T') return value;
+  if (value <= 0) return null;
+  const abs = -Math.log10(value / 100);
+  return abs === 0 ? 0 : abs; // กันค่า -0
+}
+
+/** จัดรูปแบบค่าตามหน่วย: absorbance ทศนิยม 3 ตำแหน่ง, %T ทศนิยม 2 ตำแหน่ง */
+function formatValue(value, unit) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  return unit === '%T' ? value.toFixed(2) : value.toFixed(3);
+}
+function formatDose(value) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  const abs = Math.abs(value);
+  if (abs >= 100) return value.toFixed(1);
+  if (abs >= 10) return value.toFixed(2);
+  if (abs >= 1) return value.toFixed(3);
+  return value.toFixed(4);
+}
+
+/* ===== js/chart.js ===== */
+/**
+ * กราฟ depth–dose (PDD) แกน X = ระยะลึก (cm), แกน Y = โดส
+ * วาดเส้นข้อมูล + เส้น tangent (ถ้ามี) + จุด R50/Rp
+ */
+function drawDepthDoseChart(canvas, points, options = {}) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const width = Number(options.width) || canvas.clientWidth || 400;
+  const height = Number(options.height) || canvas.clientHeight || 180;
+
+  const pixelW = Math.round(width * dpr);
+  const pixelH = Math.round(height * dpr);
+  if (canvas.width !== pixelW || canvas.height !== pixelH) {
+    canvas.width = pixelW;
+    canvas.height = pixelH;
+  }
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const pad = { top: 16, right: 12, bottom: 26, left: 46 };
+  const plotW = Math.max(10, width - pad.left - pad.right);
+  const plotH = Math.max(10, height - pad.top - pad.bottom);
+
+  const valid = (points || []).filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y)).sort((a, b) => a.x - b.x);
+
+  if (valid.length === 0) {
+    ctx.fillStyle = COLORS.empty;
+    ctx.font = '12px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ยังไม่มีข้อมูล depth–dose', width / 2, height / 2);
+    return;
+  }
+
+  const xs = valid.map((p) => p.x);
+  const ys = valid.map((p) => p.y);
+  let xmin = Math.min(...xs);
+  let xmax = Math.max(...xs);
+  let ymin = 0;
+  let ymax = Math.max(...ys) * 1.1;
+
+  if (xmin === xmax) {
+    xmin -= 0.1;
+    xmax += 0.1;
+  }
+  if (!(ymax > 0)) ymax = 1;
+
+  const xOf = (x) => pad.left + ((x - xmin) / (xmax - xmin)) * plotW;
+  const yOf = (y) => pad.top + plotH - ((y - ymin) / (ymax - ymin)) * plotH;
+
+  // grid + แกน Y
+  ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  for (let i = 0; i <= 4; i += 1) {
+    const value = ymin + ((ymax - ymin) * i) / 4;
+    const y = yOf(value);
+    ctx.strokeStyle = COLORS.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + plotW, y);
+    ctx.stroke();
+    ctx.fillStyle = COLORS.text;
+    ctx.fillText(value.toFixed(1), pad.left - 6, y);
+  }
+
+  // แกน X
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'top';
+  for (let i = 0; i <= 3; i += 1) {
+    const value = xmin + ((xmax - xmin) * i) / 3;
+    ctx.fillStyle = COLORS.text;
+    ctx.fillText(value.toFixed(2), xOf(value), pad.top + plotH + 6);
+  }
+
+  // พื้นที่ใต้เส้น
+  ctx.beginPath();
+  ctx.moveTo(xOf(valid[0].x), pad.top + plotH);
+  valid.forEach((p) => ctx.lineTo(xOf(p.x), yOf(p.y)));
+  ctx.lineTo(xOf(valid[valid.length - 1].x), pad.top + plotH);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(15, 118, 110, 0.10)';
+  ctx.fill();
+
+  // เส้นข้อมูล
+  ctx.beginPath();
+  valid.forEach((p, index) => {
+    if (index === 0) ctx.moveTo(xOf(p.x), yOf(p.y));
+    else ctx.lineTo(xOf(p.x), yOf(p.y));
+  });
+  ctx.strokeStyle = COLORS.line;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+
+  // เส้น tangent (ถ้ามี)
+  if (options.fit) {
+    const { slope, intercept } = options.fit;
+    const x1 = xmin;
+    const y1 = slope * x1 + intercept;
+    const x2 = xmax;
+    const y2 = slope * x2 + intercept;
+    ctx.setLineDash([5, 4]);
+    ctx.strokeStyle = '#b45309';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(xOf(x1), yOf(y1));
+    ctx.lineTo(xOf(x2), yOf(y2));
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // จุด R50 / Rp
+  if (options.markers) {
+    const { r50, rp, dmax } = options.markers;
+    if (Number.isFinite(r50) && Number.isFinite(dmax)) {
+      ctx.fillStyle = '#b45309';
+      ctx.beginPath();
+      ctx.arc(xOf(r50), yOf(dmax / 2), 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (Number.isFinite(rp)) {
+      ctx.strokeStyle = 'rgba(180, 83, 9, 0.5)';
+      ctx.setLineDash([3, 3]);
+      ctx.beginPath();
+      ctx.moveTo(xOf(rp), pad.top);
+      ctx.lineTo(xOf(rp), pad.top + plotH);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+  }
+
+  // ป้ายชื่อแกน
+  ctx.fillStyle = COLORS.text;
+  ctx.font = '10px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  ctx.fillText(options.unit ? `Dose (${options.unit})` : 'Dose', pad.left, 2);
+  ctx.textAlign = 'right';
+  ctx.fillText('Depth (cm)', width - pad.right, height - 12);
+}
+
+
+const COLORS = {
+  line: '#0f766e',
+  fill: 'rgba(15, 118, 110, 0.10)',
+  grid: '#eef1f5',
+  text: '#667085',
+  empty: '#98a2b3',
+};
+
+function decimalsFor(span) {
+  if (span >= 100) return 0;
+  if (span >= 10) return 1;
+  if (span >= 1) return 2;
+  if (span >= 0.1) return 3;
+  return 4;
+}
+function drawLineChart(canvas, values, options = {}) {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  const dpr = window.devicePixelRatio || 1;
+  const width = Number(options.width) || canvas.clientWidth || 600;
+  const height = Number(options.height) || canvas.clientHeight || 220;
+
+  const pixelW = Math.round(width * dpr);
+  const pixelH = Math.round(height * dpr);
+  if (canvas.width !== pixelW || canvas.height !== pixelH) {
+    canvas.width = pixelW;
+    canvas.height = pixelH;
+  }
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, width, height);
+
+  const pad = { top: 16, right: 14, bottom: 26, left: 52 };
+  const plotW = Math.max(10, width - pad.left - pad.right);
+  const plotH = Math.max(10, height - pad.top - pad.bottom);
+
+  if (!values || values.length === 0) {
+    ctx.fillStyle = COLORS.empty;
+    ctx.font = '13px "Segoe UI", system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('ยังไม่มีข้อมูล', width / 2, height / 2);
+    return;
+  }
+
+  const lineColor = options.color || COLORS.line;
+  const fillColor = options.fillColor || COLORS.fill;
+
+  let min = Math.min(...values);
+  let max = Math.max(...values);
+
+  if (min === max) {
+    const span = Math.abs(min) * 0.05 || 0.01;
+    min -= span;
+    max += span;
+  } else {
+    const padValue = (max - min) * 0.12;
+    min -= padValue;
+    max += padValue;
+  }
+
+  const format = options.format || ((value) => Number(value).toFixed(decimalsFor(max - min)));
+
+  const yOf = (value) => pad.top + plotH - ((value - min) / (max - min)) * plotH;
+  const xOf = (index) =>
+    values.length === 1 ? pad.left + plotW / 2 : pad.left + (index / (values.length - 1)) * plotW;
+
+  // เส้นกริดแนวนอน + ป้ายค่า
+  ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'middle';
+  const gridCount = 4;
+  for (let i = 0; i <= gridCount; i += 1) {
+    const value = min + ((max - min) * i) / gridCount;
+    const y = yOf(value);
+    ctx.strokeStyle = COLORS.grid;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(pad.left, y);
+    ctx.lineTo(pad.left + plotW, y);
+    ctx.stroke();
+    ctx.fillStyle = COLORS.text;
+    ctx.fillText(format(value), pad.left - 8, y);
+  }
+
+  // พื้นที่ใต้เส้น
+  ctx.beginPath();
+  ctx.moveTo(xOf(0), pad.top + plotH);
+  values.forEach((value, index) => ctx.lineTo(xOf(index), yOf(value)));
+  ctx.lineTo(xOf(values.length - 1), pad.top + plotH);
+  ctx.closePath();
+  ctx.fillStyle = fillColor;
+  ctx.fill();
+
+  // เส้นข้อมูล
+  ctx.beginPath();
+  values.forEach((value, index) => {
+    const x = xOf(index);
+    const y = yOf(value);
+    if (index === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  });
+  ctx.strokeStyle = lineColor;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  ctx.stroke();
+
+  // จุดข้อมูล (แสดงเฉพาะจุดสุดท้ายและจุดแรกเมื่อมีข้อมูลเยอะ)
+  const showDots = values.length <= 40;
+  values.forEach((value, index) => {
+    if (!showDots && index !== values.length - 1) return;
+    ctx.beginPath();
+    ctx.arc(xOf(index), yOf(value), index === values.length - 1 ? 3.5 : 2.2, 0, Math.PI * 2);
+    ctx.fillStyle = lineColor;
+    ctx.fill();
+    if (index === values.length - 1) {
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#fff';
+      ctx.stroke();
+    }
+  });
+}
+
+/* ===== js/serial.js ===== */
+/**
+ * ตัวจัดการพอร์ตอนุกรมผ่าน Web Serial API (Chrome/Edge)
+ * - อ่านข้อมูลเป็นข้อความและแบ่งเป็น "บรรทัด" ให้อัตโนมัติ
+ * - รองรับเครื่องที่ส่งข้อมูลมาโดยไม่มีอักขระขึ้นบรรทัดใหม่ (flush เมื่อเงียบ 600 ms)
+ * - ส่งคำสั่งกลับไปยังเครื่องได้
+ */
+
+const LINE_BREAK = /\r\n|\n|\r/;
+const IDLE_FLUSH_MS = 600;
+const MAX_BUFFER = 8192;
+class SerialSession {
+  constructor(handlers = {}) {
+    this.handlers = handlers;
+    this.port = null;
+    this.reader = null;
+    this.writer = null;
+    this.decoder = null;
+    this.buffer = '';
+    this.idleTimer = 0;
+    this.closing = false;
+    this.loopPromise = null;
+  }
+
+  static get supported() {
+    return typeof navigator !== 'undefined' && 'serial' in navigator;
+  }
+
+  /**
+   * เปิดพอร์ต
+   * @param {SerialOptions} options
+   * @param {SerialPort|null} existingPort พอร์ตที่ผู้ใช้เลือกไว้แล้ว (ถ้าไม่ส่ง จะเปิด chooser ให้เลือก)
+   */
+  async connect(options, existingPort = null) {
+    if (!SerialSession.supported) {
+      const err = new Error('เบราว์เซอร์นี้ไม่รองรับ Web Serial (ใช้ Chrome/Edge)');
+      err.name = 'NotSupportedError';
+      throw err;
+    }
+    if (this.port) throw new Error('เชื่อมต่ออยู่แล้ว');
+
+    this.port = existingPort || (await navigator.serial.requestPort());
+    try {
+      await this.port.open(options);
+    } catch (err) {
+      this.port = null;
+      throw err;
+    }
+
+    this.decoder = new TextDecoder('utf-8', { fatal: false });
+    this.writer = this.port.writable.getWriter();
+    this.buffer = '';
+    this.closing = false;
+    this.handlers.onStatus?.('open', this.port.getInfo?.() ?? {});
+    this.loopPromise = this.readLoop();
+  }
+
+  async readLoop() {
+    try {
+      this.reader = this.port.readable.getReader();
+    } catch (err) {
+      this.handlers.onError?.(err);
+      return;
+    }
+
+    try {
+      while (!this.closing) {
+        const { value, done } = await this.reader.read();
+        if (done) break;
+        if (!value || value.byteLength === 0) continue;
+        this.handlers.onRaw?.(value);
+        this.push(this.decoder.decode(value, { stream: true }));
+      }
+    } catch (err) {
+      if (!this.closing) this.handlers.onError?.(err);
+    } finally {
+      try {
+        this.reader.releaseLock();
+      } catch {
+        /* already released */
+      }
+      this.reader = null;
+
+      // เครื่องถูกถอดสาย / ปิดสตรีมเอง: เก็บกวาดให้เรียบร้อยแล้วแจ้ง UI
+      if (!this.closing) {
+        this.closing = true;
+        try {
+          this.writer?.releaseLock();
+        } catch {
+          /* ignore */
+        }
+        this.writer = null;
+        const port = this.port;
+        this.port = null;
+        try {
+          await port?.close();
+        } catch {
+          /* ignore */
+        }
+        this.handlers.onStatus?.('closed');
+      }
+    }
+  }
+
+  push(text) {
+    if (!text) return;
+    this.buffer += text;
+
+    const parts = this.buffer.split(LINE_BREAK);
+    if (parts.length > 1) {
+      this.buffer = parts.pop() ?? '';
+      for (const part of parts) this.emit(part);
+    }
+
+    if (this.buffer.length > MAX_BUFFER) {
+      const overflow = this.buffer;
+      this.buffer = '';
+      this.emit(overflow);
+    }
+
+    clearTimeout(this.idleTimer);
+    if (this.buffer.trim()) {
+      this.idleTimer = setTimeout(() => {
+        const pending = this.buffer;
+        this.buffer = '';
+        if (pending.trim()) this.emit(pending);
+      }, IDLE_FLUSH_MS);
+    }
+  }
+
+  emit(line) {
+    const text = line.replace(/\r/g, '').trim();
+    if (!text) return;
+    this.handlers.onLine?.(text);
+  }
+
+  /** ส่งข้อความไปยังเครื่อง */
+  async send(text, lineEnding = 'CRLF') {
+    if (!this.writer) throw new Error('ยังไม่ได้เชื่อมต่อพอร์ต');
+    const map = { CRLF: '\r\n', LF: '\n', CR: '\r', NONE: '' };
+    const payload = String(text) + (map[lineEnding] ?? '\r\n');
+    await this.writer.write(new TextEncoder().encode(payload));
+  }
+
+  async disconnect() {
+    this.closing = true;
+    clearTimeout(this.idleTimer);
+
+    try {
+      await this.reader?.cancel();
+    } catch {
+      /* ignore */
+    }
+    try {
+      await this.loopPromise;
+    } catch {
+      /* ignore */
+    }
+
+    try {
+      this.writer?.releaseLock();
+    } catch {
+      /* ignore */
+    }
+    this.writer = null;
+
+    const port = this.port;
+    this.port = null;
+
+    try {
+      await port?.close();
+    } catch {
+      /* ignore */
+    }
+
+    this.handlers.onStatus?.('closed');
+  }
+}
+
+/* ===== js/xlsx.js ===== */
+/**
+ * xlsx.js — ตัวอ่าน/เขียนไฟล์ .xlsx แบบไม่ต้องพึ่งไลบรารีภายนอก
+ * - buildXlsx(): สร้างไฟล์ .xlsx (ZIP แบบ store) จาก sheets ของ rows
+ * - readXlsx():  อ่านไฟล์ .xlsx (รองรับ deflate ผ่าน DecompressionStream)
+ */
+
+const XML_HEADER = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+const enc = new TextEncoder();
+const dec = new TextDecoder('utf-8');
+
+/* ------------------------------------------------------------------ */
+/* utility                                                             */
+/* ------------------------------------------------------------------ */
+
+let CRC_TABLE = null;
+
+function crcTable() {
+  if (CRC_TABLE) return CRC_TABLE;
+  const table = new Uint32Array(256);
+  for (let i = 0; i < 256; i += 1) {
+    let c = i;
+    for (let k = 0; k < 8; k += 1) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+    table[i] = c >>> 0;
+  }
+  CRC_TABLE = table;
+  return table;
+}
+
+function crc32(bytes) {
+  const table = crcTable();
+  let crc = 0xffffffff;
+  for (let i = 0; i < bytes.length; i += 1) crc = table[(crc ^ bytes[i]) & 0xff] ^ (crc >>> 8);
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+function escapeXml(text) {
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function unescapeXml(text) {
+  return String(text)
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCodePoint(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec2) => String.fromCodePoint(Number(dec2)))
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
+}
+
+function colName(index) {
+  let n = index + 1;
+  let name = '';
+  while (n > 0) {
+    const rem = (n - 1) % 26;
+    name = String.fromCharCode(65 + rem) + name;
+    n = Math.floor((n - 1) / 26);
+  }
+  return name;
+}
+
+function colIndex(ref) {
+  const letters = String(ref).replace(/[^A-Za-z]/g, '').toUpperCase();
+  let value = 0;
+  for (let i = 0; i < letters.length; i += 1) value = value * 26 + (letters.charCodeAt(i) - 64);
+  return value - 1;
+}
+
+function dosDateTime(date) {
+  const time = ((date.getHours() & 0x1f) << 11) | ((date.getMinutes() & 0x3f) << 5) | ((Math.floor(date.getSeconds() / 2)) & 0x1f);
+  const day = (((date.getFullYear() - 1980) & 0x7f) << 9) | (((date.getMonth() + 1) & 0x0f) << 5) | (date.getDate() & 0x1f);
+  return { time, day };
+}
+
+/* ------------------------------------------------------------------ */
+/* ZIP writer (store only)                                             */
+/* ------------------------------------------------------------------ */
+
+function zipStore(files, date = new Date()) {
+  const { time, day } = dosDateTime(date);
+  const locals = [];
+  const centrals = [];
+  let offset = 0;
+
+  for (const file of files) {
+    const nameBytes = enc.encode(file.name);
+    const data = file.data;
+    const crc = crc32(data);
+
+    const local = new Uint8Array(30 + nameBytes.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true);
+    lv.setUint16(8, 0, true);
+    lv.setUint16(10, time, true);
+    lv.setUint16(12, day, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, data.length, true);
+    lv.setUint32(22, data.length, true);
+    lv.setUint16(26, nameBytes.length, true);
+    lv.setUint16(28, 0, true);
+    local.set(nameBytes, 30);
+
+    locals.push(local, data);
+    centrals.push({ nameBytes, crc, size: data.length, offset });
+    offset += local.length + data.length;
+  }
+
+  const cdParts = [];
+  let cdSize = 0;
+  for (const entry of centrals) {
+    const record = new Uint8Array(46 + entry.nameBytes.length);
+    const dv = new DataView(record.buffer);
+    dv.setUint32(0, 0x02014b50, true);
+    dv.setUint16(4, 20, true);
+    dv.setUint16(6, 20, true);
+    dv.setUint16(8, 0x0800, true);
+    dv.setUint16(10, 0, true);
+    dv.setUint16(12, time, true);
+    dv.setUint16(14, day, true);
+    dv.setUint32(16, entry.crc, true);
+    dv.setUint32(20, entry.size, true);
+    dv.setUint32(24, entry.size, true);
+    dv.setUint16(28, entry.nameBytes.length, true);
+    dv.setUint32(42, entry.offset, true);
+    record.set(entry.nameBytes, 46);
+    cdParts.push(record);
+    cdSize += record.length;
+  }
+
+  const eocd = new Uint8Array(22);
+  const ev = new DataView(eocd.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(8, centrals.length, true);
+  ev.setUint16(10, centrals.length, true);
+  ev.setUint32(12, cdSize, true);
+  ev.setUint32(16, offset, true);
+
+  const total = offset + cdSize + eocd.length;
+  const out = new Uint8Array(total);
+  let pos = 0;
+  for (const part of locals) {
+    out.set(part, pos);
+    pos += part.length;
+  }
+  for (const part of cdParts) {
+    out.set(part, pos);
+    pos += part.length;
+  }
+  out.set(eocd, pos);
+  return out;
+}
+
+/* ------------------------------------------------------------------ */
+/* XLSX writer                                                         */
+/* ------------------------------------------------------------------ */
+
+function sheetXml(rows, hasDrawing) {
+  const body = rows
+    .map((row, rowIndex) => {
+      const cells = (row || [])
+        .map((value, colIdx) => {
+          if (value === null || value === undefined || value === '') return '';
+          const ref = `${colName(colIdx)}${rowIndex + 1}`;
+          if (typeof value === 'number' && Number.isFinite(value)) {
+            return `<c r="${ref}"><v>${value}</v></c>`;
+          }
+          return `<c r="${ref}" t="inlineStr"><is><t xml:space="preserve">${escapeXml(value)}</t></is></c>`;
+        })
+        .join('');
+      return `<row r="${rowIndex + 1}">${cells}</row>`;
+    })
+    .join('');
+  const drawing = hasDrawing ? '<drawing r:id="rId1"/>' : '';
+  const xmlnsR = hasDrawing ? ' xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"' : '';
+  return `${XML_HEADER}<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"${xmlnsR}><sheetData>${body}</sheetData>${drawing}</worksheet>`;
+}
+
+function imageBytes(data) {
+  if (data instanceof Uint8Array) return data;
+  if (typeof data === 'string' && data.startsWith('data:')) {
+    const base64 = data.slice(data.indexOf(',') + 1);
+    if (typeof atob === 'function') {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+      return bytes;
+    }
+    return new Uint8Array(Buffer.from(base64, 'base64'));
+  }
+  throw new Error('รูปภาพต้องเป็น dataURL หรือ Uint8Array');
+}
+
+function drawingXml(images) {
+  const anchors = images
+    .map((image, index) => {
+      const cx = Math.round((Number(image.width) || 900) * 9525);
+      const cy = Math.round((Number(image.height) || 280) * 9525);
+      const fromCol = Number(image.fromCol) || 0;
+      const fromRow = Number(image.fromRow) || 0;
+      return (
+        '<xdr:oneCellAnchor>' +
+        `<xdr:from><xdr:col>${fromCol}</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>${fromRow}</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from>` +
+        `<xdr:ext cx="${cx}" cy="${cy}"/>` +
+        '<xdr:pic><xdr:nvPicPr>' +
+        `<xdr:cNvPr id="${index + 2}" name="Chart ${index + 1}"/>` +
+        '<xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr>' +
+        '</xdr:nvPicPr>' +
+        `<xdr:blipFill><a:blip r:embed="rId${index + 1}"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill>` +
+        `<xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr>` +
+        '</xdr:pic><xdr:clientData/></xdr:oneCellAnchor>'
+      );
+    })
+    .join('');
+  return (
+    `${XML_HEADER}<xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" ` +
+    'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">' +
+    `${anchors}</xdr:wsDr>`
+  );
+}
+
+const STYLES_XML =
+  `${XML_HEADER}<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">` +
+  '<fonts count="1"><font><sz val="11"/><name val="Calibri"/></font></fonts>' +
+  '<fills count="1"><fill><patternFill patternType="none"/></fill></fills>' +
+  '<borders count="1"><border/></borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/></cellXfs>' +
+  '<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>' +
+  '</styleSheet>';
+
+/**
+ * สร้างไฟล์ .xlsx (รองรับรูปภาพฝังในชีตผ่าน sheet.images)
+ * @param {{name: string, rows: (string|number|null)[][], images?: {data: string|Uint8Array, width: number, height: number, fromCol?: number, fromRow?: number}[]}[]} sheets
+ * @returns {Uint8Array}
+ */
+function buildXlsx(sheets, options = {}) {
+  const list = (sheets || []).filter((s) => s && Array.isArray(s.rows));
+  if (list.length === 0) throw new Error('ต้องมีอย่างน้อย 1 ชีต');
+
+  const files = [];
+  const sheetCount = list.length;
+
+  let mediaIndex = 0;
+  const drawings = [];
+  list.forEach((sheet, sheetIndex) => {
+    if (!Array.isArray(sheet.images) || sheet.images.length === 0) return;
+    const images = sheet.images.map((image) => {
+      mediaIndex += 1;
+      return { ...image, mediaName: `image${mediaIndex}.png`, bytes: imageBytes(image.data) };
+    });
+    drawings.push({ sheetIndex, drawingNo: drawings.length + 1, images });
+  });
+  const hasImages = drawings.length > 0;
+
+  const contentTypes = [
+    `${XML_HEADER}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">`,
+    '<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>',
+    '<Default Extension="xml" ContentType="application/xml"/>',
+    hasImages ? '<Default Extension="png" ContentType="image/png"/>' : '',
+    '<Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>',
+    '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>',
+    list
+      .map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`)
+      .join(''),
+    drawings
+      .map((d) => `<Override PartName="/xl/drawings/drawing${d.drawingNo}.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>`)
+      .join(''),
+    '</Types>',
+  ].join('');
+
+  const rootRels =
+    `${XML_HEADER}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+    '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/>' +
+    '</Relationships>';
+
+  const workbookRels = [
+    `${XML_HEADER}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">`,
+    ...list.map(
+      (_, i) =>
+        `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`,
+    ),
+    `<Relationship Id="rId${sheetCount + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>`,
+    '</Relationships>',
+  ].join('');
+
+  const workbook =
+    `${XML_HEADER}<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>` +
+    list
+      .map((sheet, i) => `<sheet name="${escapeXml((sheet.name || `Sheet${i + 1}`).slice(0, 31))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`)
+      .join('') +
+    '</sheets></workbook>';
+
+  files.push({ name: '[Content_Types].xml', data: enc.encode(contentTypes) });
+  files.push({ name: '_rels/.rels', data: enc.encode(rootRels) });
+  files.push({ name: 'xl/workbook.xml', data: enc.encode(workbook) });
+  files.push({ name: 'xl/_rels/workbook.xml.rels', data: enc.encode(workbookRels) });
+  files.push({ name: 'xl/styles.xml', data: enc.encode(STYLES_XML) });
+
+  drawings.forEach((drawing) => {
+    files.push({ name: `xl/drawings/drawing${drawing.drawingNo}.xml`, data: enc.encode(drawingXml(drawing.images)) });
+
+    const drawingRels =
+      `${XML_HEADER}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      drawing.images
+        .map(
+          (image, index) =>
+            `<Relationship Id="rId${index + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/${image.mediaName}"/>`,
+        )
+        .join('') +
+      '</Relationships>';
+    files.push({ name: `xl/drawings/_rels/drawing${drawing.drawingNo}.xml.rels`, data: enc.encode(drawingRels) });
+
+    drawing.images.forEach((image) => {
+      files.push({ name: `xl/media/${image.mediaName}`, data: image.bytes });
+    });
+
+    const sheetRels =
+      `${XML_HEADER}<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">` +
+      `<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing${drawing.drawingNo}.xml"/>` +
+      '</Relationships>';
+    files.push({ name: `xl/worksheets/_rels/sheet${drawing.sheetIndex + 1}.xml.rels`, data: enc.encode(sheetRels) });
+  });
+
+  const drawingSheets = new Set(drawings.map((drawing) => drawing.sheetIndex));
+  list.forEach((sheet, i) => {
+    files.push({ name: `xl/worksheets/sheet${i + 1}.xml`, data: enc.encode(sheetXml(sheet.rows, drawingSheets.has(i))) });
+  });
+
+  return zipStore(files, options.createdAt || new Date());
+}
+
+/* ------------------------------------------------------------------ */
+/* ZIP reader                                                          */
+/* ------------------------------------------------------------------ */
+
+function findEocd(bytes) {
+  const min = Math.max(0, bytes.length - 66000);
+  for (let i = bytes.length - 22; i >= min; i -= 1) {
+    if (bytes[i] === 0x50 && bytes[i + 1] === 0x4b && bytes[i + 2] === 0x05 && bytes[i + 3] === 0x06) return i;
+  }
+  return -1;
+}
+
+async function inflateRaw(bytes) {
+  if (typeof DecompressionStream === 'undefined') throw new Error('เบราว์เซอร์ไม่รองรับการแตกไฟล์ .xlsx');
+  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+  const buffer = await new Response(stream).arrayBuffer();
+  return new Uint8Array(buffer);
+}
+
+async function unzip(bytes) {
+  const eocd = findEocd(bytes);
+  if (eocd < 0) throw new Error('ไฟล์ไม่ใช่ .xlsx ที่ถูกต้อง');
+
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const count = dv.getUint16(eocd + 10, true);
+  let offset = dv.getUint32(eocd + 16, true);
+  const entries = new Map();
+
+  for (let i = 0; i < count; i += 1) {
+    if (dv.getUint32(offset, true) !== 0x02014b50) break;
+    const method = dv.getUint16(offset + 10, true);
+    const compSize = dv.getUint32(offset + 20, true);
+    const nameLen = dv.getUint16(offset + 28, true);
+    const extraLen = dv.getUint16(offset + 30, true);
+    const commentLen = dv.getUint16(offset + 32, true);
+    const localOffset = dv.getUint32(offset + 42, true);
+    const name = dec.decode(bytes.subarray(offset + 46, offset + 46 + nameLen));
+    entries.set(name, { method, compSize, localOffset });
+    offset += 46 + nameLen + extraLen + commentLen;
+  }
+
+  const files = new Map();
+  for (const [name, entry] of entries) {
+    const lo = entry.localOffset;
+    if (dv.getUint32(lo, true) !== 0x04034b50) continue;
+    const nameLen = dv.getUint16(lo + 26, true);
+    const extraLen = dv.getUint16(lo + 28, true);
+    const start = lo + 30 + nameLen + extraLen;
+    const raw = bytes.subarray(start, start + entry.compSize);
+    const data = entry.method === 0 ? raw : await inflateRaw(raw);
+    files.set(name, data);
+  }
+  return files;
+}
+
+/* ------------------------------------------------------------------ */
+/* XML helpers (regex-based, ใช้ได้ทั้งเบราว์เซอร์และ Node)            */
+/* ------------------------------------------------------------------ */
+
+function attr(tag, name) {
+  const match = tag.match(new RegExp(`${name}\\s*=\\s*"([^"]*)"`, 'i'));
+  return match ? unescapeXml(match[1]) : null;
+}
+
+function parseSheetXml(xml, sharedStrings) {
+  const rows = [];
+  const rowRegex = /<row\b[^>]*>([\s\S]*?)<\/row>/g;
+  let rowMatch;
+
+  while ((rowMatch = rowRegex.exec(xml))) {
+    const rowTitle = rowMatch[0].slice(0, rowMatch[0].indexOf('>'));
+    const rowIndex = Number(attr(rowTitle, 'r')) || rows.length + 1;
+    const cells = [];
+    const cellRegex = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
+    let cellMatch;
+
+    while ((cellMatch = cellRegex.exec(rowMatch[1]))) {
+      const attrs = cellMatch[1] || '';
+      const inner = cellMatch[2] || '';
+      const ref = attr(attrs, 'r') || '';
+      const type = attr(attrs, 't') || '';
+      let value = '';
+
+      if (type === 'inlineStr') {
+        const texts = [...inner.matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map((m) => unescapeXml(m[1]));
+        value = texts.join('');
+      } else {
+        const vm = inner.match(/<v\b[^>]*>([\s\S]*?)<\/v>/);
+        const raw = vm ? unescapeXml(vm[1]) : '';
+        if (type === 's') {
+          const idx = Number(raw);
+          value = Number.isInteger(idx) && sharedStrings[idx] !== undefined ? sharedStrings[idx] : '';
+        } else if (type === 'b') {
+          value = raw === '1' ? 'TRUE' : 'FALSE';
+        } else {
+          value = raw;
+        }
+      }
+
+      cells[colIndex(ref)] = value;
+    }
+
+    rows[rowIndex - 1] = Array.from(cells, (v) => (v === undefined ? '' : v));
+  }
+
+  return Array.from(rows, (row) => row || []);
+}
+
+function parseSharedStrings(xml) {
+  if (!xml) return [];
+  return [...xml.matchAll(/<si\b[^>]*>([\s\S]*?)<\/si>/g)].map((m) =>
+    [...m[1].matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map((t) => unescapeXml(t[1])).join(''),
+  );
+}
+
+/**
+ * อ่านไฟล์ .xlsx
+ * @param {ArrayBuffer|Uint8Array} input
+ * @returns {Promise<{sheets: {name: string, rows: string[][]}[]}>}
+ */
+async function readXlsx(input) {
+  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  const files = await unzip(bytes);
+  const get = (name) => (files.has(name) ? dec.decode(files.get(name)) : '');
+
+  const workbook = get('xl/workbook.xml');
+  const rels = get('xl/_rels/workbook.xml.rels');
+  const shared = parseSharedStrings(get('xl/sharedStrings.xml'));
+
+  const relMap = new Map();
+  for (const m of rels.matchAll(/<Relationship\b[^>]*\/?>/g)) {
+    const id = attr(m[0], 'Id');
+    const target = attr(m[0], 'Target');
+    if (id && target) relMap.set(id, target.startsWith('/') ? target.slice(1) : `xl/${target}`);
+  }
+
+  const sheets = [];
+  for (const m of workbook.matchAll(/<sheet\b[^>]*\/?>/g)) {
+    const name = attr(m[0], 'name') || `Sheet${sheets.length + 1}`;
+    const rid = m[0].match(/r:id\s*=\s*"([^"]+)"/);
+    let path = rid ? relMap.get(rid[1]) : null;
+    if (!path || !files.has(path)) {
+      const fallback = `xl/worksheets/sheet${sheets.length + 1}.xml`;
+      path = files.has(fallback) ? fallback : [...files.keys()].find((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k));
+    }
+    if (!path) continue;
+    sheets.push({ name, rows: parseSheetXml(get(path), shared) });
+  }
+
+  if (sheets.length === 0) throw new Error('ไม่พบชีตในไฟล์ .xlsx');
+  return { sheets };
+}
+
+/* ===== js/calibration.js ===== */
+/**
+ * calibration.js — ตารางสอบเทียบ (absorbance → dose) และการประมาณค่าในช่วง
+ * เป็น pure functions ทั้งหมด เพื่อทดสอบได้ด้วย node --test
+ */
+
+/** แปลงข้อความเป็นตัวเลข รองรับทั้ง 0.123 / 0,123 / 1,234.5 */
+function parseNumber(value) {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : NaN;
+  if (value === null || value === undefined) return NaN;
+
+  let text = String(value).trim().replace(/\s/g, '').replace(/%$/, '');
+  if (!text) return NaN;
+
+  const hasComma = text.includes(',');
+  const hasDot = text.includes('.');
+  if (hasComma && hasDot) {
+    if (text.lastIndexOf(',') > text.lastIndexOf('.')) {
+      text = text.replace(/\./g, '').replace(',', '.');
+    } else {
+      text = text.replace(/,/g, '');
+    }
+  } else if (hasComma) {
+    text = text.replace(',', '.');
+  }
+
+  const num = Number(text);
+  return Number.isFinite(num) ? num : NaN;
+}
+
+const UNIT_PATTERNS = [
+  [/kgy/i, 'kGy'],
+  [/mgy/i, 'mGy'],
+  [/cgy/i, 'cGy'],
+  [/(?<!k)(?<!m)(?<!c)gy/i, 'Gy'],
+];
+
+/** เดาหน่วยโดสจากข้อความหัวตาราง เช่น "Dose (kGy)" */
+function detectDoseUnit(text) {
+  const value = String(text ?? '');
+  for (const [pattern, unit] of UNIT_PATTERNS) {
+    if (pattern.test(value)) return unit;
+  }
+  return '';
+}
+
+/**
+ * อ่านตารางสอบเทียบตามรูปแบบมาตรฐานของเครื่องนี้
+ *   คอลัมน์ A = absorbance, คอลัมน์ B = dose
+ *   แถว 1 = หัวตาราง (ไม่ถูกอ่านเป็นข้อมูล)
+ * ถ้าแถวแรกเป็นตัวเลขอยู่แล้ว (ไม่มีหัวตาราง) จะอ่านตั้งแต่แถวแรก
+ *
+ * @param {string[][]} rows
+ * @returns {{points: {a:number,dose:number}[], aCol:number, doseCol:number, headerRow:number, skipped:number, unit:string}}
+ */
+function buildCalibrationPoints(rows) {
+  const data = (rows || []).filter((row) => Array.isArray(row) && row.some((cell) => String(cell ?? '').trim() !== ''));
+  if (data.length === 0) {
+    return { points: [], aCol: 0, doseCol: 1, headerRow: -1, skipped: 0, unit: 'kGy' };
+  }
+
+  const aCol = 0;
+  const doseCol = 1;
+
+  // ---- หัวตาราง: แถวแรกถือเป็นหัวตารางถ้าช่อง A หรือ B ไม่ใช่ตัวเลข ----
+  const firstA = parseNumber(data[0][aCol]);
+  const firstDose = parseNumber(data[0][doseCol]);
+  const hasHeader = !Number.isFinite(firstA) || !Number.isFinite(firstDose);
+  const start = hasHeader ? 1 : 0;
+
+  // ---- หน่วยโดส: อ่านจากหัวตาราง/ไม่กี่แถวแรก ----
+  let unit = '';
+  const scanLimit = Math.min(data.length, 5);
+  for (let r = 0; r < scanLimit && !unit; r += 1) {
+    unit = detectDoseUnit(data[r][doseCol]) || detectDoseUnit(data[r][aCol]);
+  }
+  if (!unit) unit = 'kGy';
+
+  // ---- ข้อมูล: อ่านเฉพาะคอลัมน์ A และ B ----
+  const points = [];
+  let skipped = 0;
+  for (let r = start; r < data.length; r += 1) {
+    const a = parseNumber(data[r][aCol]);
+    const dose = parseNumber(data[r][doseCol]);
+    if (!Number.isFinite(a) || !Number.isFinite(dose)) {
+      skipped += 1;
+      continue;
+    }
+    points.push({ a, dose });
+  }
+
+  points.sort((p1, p2) => p1.a - p2.a);
+  return { points, aCol, doseCol, headerRow: hasHeader ? 0 : -1, skipped, unit };
+}
+
+/**
+ * ประมาณค่าโดสจากตาราง (linear interpolation, นอกช่วงใช้การต่อเส้นจากช่วงปลาย)
+ * @param {number} absorbance
+ * @param {{a:number,dose:number}[]} points
+ */
+function doseFromPoints(absorbance, points) {
+  if (!Array.isArray(points) || points.length === 0) return null;
+  if (!Number.isFinite(absorbance)) return null;
+  if (points.length === 1) return points[0].dose;
+
+  const at = (i) => points[i];
+  const interp = (p0, p1) => {
+    const span = p1.a - p0.a;
+    if (span === 0) return p1.dose;
+    const t = (absorbance - p0.a) / span;
+    return p0.dose + t * (p1.dose - p0.dose);
+  };
+
+  if (absorbance <= at(0).a) return interp(at(0), at(1));
+  for (let i = 1; i < points.length; i += 1) {
+    if (absorbance <= at(i).a) return interp(at(i - 1), at(i));
+  }
+  return interp(at(points.length - 2), at(points.length - 1));
+}
+
+/** ตรวจว่าค่าอยู่นอกช่วงตารางหรือไม่ (ไว้เตือนผู้ใช้) */
+function isOutsideRange(absorbance, points) {
+  if (!Array.isArray(points) || points.length === 0 || !Number.isFinite(absorbance)) return false;
+  return absorbance < points[0].a || absorbance > points[points.length - 1].a;
+}
+
+/** อ่านไฟล์ CSV อย่างง่าย (รองรับ comma / semicolon / tab และเครื่องหมายคำพูด) */
+function parseCsv(text) {
+  const clean = String(text ?? '').replace(/^\ufeff/, '');
+  const delimiter = clean.includes('\t') ? '\t' : clean.includes(';') && !clean.includes(',') ? ';' : ',';
+  const rows = [];
+  let row = [];
+  let field = '';
+  let quoted = false;
+
+  for (let i = 0; i < clean.length; i += 1) {
+    const ch = clean[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (clean[i + 1] === '"') {
+          field += '"';
+          i += 1;
+        } else {
+          quoted = false;
+        }
+      } else {
+        field += ch;
+      }
+      continue;
+    }
+    if (ch === '"') {
+      quoted = true;
+    } else if (ch === delimiter) {
+      row.push(field);
+      field = '';
+    } else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && clean[i + 1] === '\n') i += 1;
+      row.push(field);
+      field = '';
+      if (row.some((cell) => cell.trim() !== '')) rows.push(row);
+      row = [];
+    } else {
+      field += ch;
+    }
+  }
+  if (field !== '' || row.length > 0) {
+    row.push(field);
+    if (row.some((cell) => cell.trim() !== '')) rows.push(row);
+  }
+  return rows;
+}
+
+/* ===== js/energy.js ===== */
+/**
+ * energy.js — คำนวณพลังงานลำอิเล็กตรอนจาก depth–dose ในอะลูมิเนียม
+ * อ้างอิงโครงสร้างเดียวกับชีต "Dose Conversion" ในไฟล์ dose table ED.xlsx
+ *   Response = (Ai − Ao) / t
+ *   Dose     = lookup(Response) จากตาราง Dose
+ *   fit      = linear regression ของ Dose(adjusted) กับ Depth ในช่วงที่เลือก
+ *   R50      = (Dmax/2 − intercept) / slope
+ *   Rp       = −intercept / slope
+ *   Ea       = 0.99 × 6.2 × R50        (MeV)
+ *   Ep       = 0.99 × 5.09 × Rp + 0.2  (MeV)
+ */
+
+/** ระยะลึกในอะลูมิเนียม 60 ระดับ (cm) ตามไฟล์ dose table ED.xlsx */
+const STANDARD_DEPTHS = [
+  0.1812, 0.2701, 0.364, 0.4501, 0.5376, 0.6272, 0.7133, 0.7987, 0.8911, 0.9794,
+  1.0697, 1.1509, 1.2377, 1.3266, 1.4148, 1.4988, 1.5857, 1.6767, 1.7572, 1.858,
+  1.942, 2.0225, 2.1157, 2.2053, 2.2879, 2.3733, 2.4664, 2.5504, 2.6379, 2.722,
+  3.1225, 3.2115, 3.3053, 3.3914, 3.4789, 3.5685, 3.6546, 3.74, 3.8325, 3.9207,
+  4.011, 4.0922, 4.179, 4.2679, 4.3562, 4.4402, 4.527, 4.618, 4.6985, 4.7993,
+  4.8833, 4.9639, 5.057, 5.1466, 5.2292, 5.3146, 5.4077, 5.4917, 5.5793, 5.6633,
+];
+
+/** สร้างแถวเริ่มต้น 60 แถว พร้อมระยะลึกมาตรฐาน (ยังไม่มีค่า Ai) */
+function createStandardRows() {
+  return STANDARD_DEPTHS.map((depth) => ({ depth, ai: null }));
+}
+
+const ENERGY_UNIT_PATTERNS = [
+  [/kgy/i, 'kGy'],
+  [/mgy/i, 'mGy'],
+  [/cgy/i, 'cGy'],
+  [/(?<!k)(?<!m)(?<!c)gy/i, 'Gy'],
+];
+
+function detectUnit(text) {
+  const value = String(text ?? '');
+  for (const [pattern, unit] of ENERGY_UNIT_PATTERNS) if (pattern.test(value)) return unit;
+  return 'kGy';
+}
+
+/**
+ * อ่านตาราง Dose (Response → Dose) จากชีตแรกของไฟล์ Excel
+ * หาคอลัมน์จากหัวตารางที่มีคำว่า Response และ Dose
+ * ถ้าไม่พบหัวตาราง จะถือว่าเป็น 2 คอลัมน์ (response, dose)
+ */
+function buildResponseDosePoints(rows) {
+  const data = (rows || []).filter((row) => Array.isArray(row) && row.some((cell) => String(cell ?? '').trim() !== ''));
+  if (data.length === 0) return { points: [], unit: 'kGy', headerRow: -1, skipped: 0 };
+
+  let headerRow = -1;
+  let rCol = -1;
+  let dCol = -1;
+  let unit = '';
+
+  const limit = Math.min(data.length, 25);
+  for (let r = 0; r < limit; r += 1) {
+    let foundR = -1;
+    let foundD = -1;
+    data[r].forEach((cell, index) => {
+      const text = String(cell ?? '').trim();
+      if (!text) return;
+      if (foundR < 0 && /response/i.test(text) && !/minimum|maximum/i.test(text)) foundR = index;
+      if (foundD < 0 && /dose/i.test(text) && !/minimum|maximum/i.test(text)) foundD = index;
+    });
+    if (foundR >= 0 && foundD >= 0 && foundR !== foundD) {
+      headerRow = r;
+      rCol = foundR;
+      dCol = foundD;
+      unit = detectUnit(data[r][dCol]);
+      break;
+    }
+  }
+
+  const start = headerRow >= 0 ? headerRow + 1 : 0;
+  if (rCol < 0) rCol = 0;
+  if (dCol < 0) dCol = 1;
+  if (!unit) unit = 'kGy';
+
+  const points = [];
+  let skipped = 0;
+  for (let r = start; r < data.length; r += 1) {
+    const response = parseNumber(data[r][rCol]);
+    const dose = parseNumber(data[r][dCol]);
+    if (!Number.isFinite(response) || !Number.isFinite(dose)) {
+      skipped += 1;
+      continue;
+    }
+    points.push({ a: response, dose });
+  }
+
+  points.sort((p1, p2) => p1.a - p2.a);
+  return { points, unit, headerRow, skipped };
+}
+
+function linearFit(points) {
+  const n = points.length;
+  if (n < 2) return null;
+  let sx = 0;
+  let sy = 0;
+  let sxx = 0;
+  let sxy = 0;
+  for (const point of points) {
+    sx += point.x;
+    sy += point.y;
+    sxx += point.x * point.x;
+    sxy += point.x * point.y;
+  }
+  const denom = n * sxx - sx * sx;
+  if (!denom) return null;
+  const slope = (n * sxy - sx * sy) / denom;
+  const intercept = (sy - slope * sx) / n;
+  return { slope, intercept, n };
+}
+
+function rSquared(points, fit) {
+  const n = points.length;
+  if (n < 2) return 0;
+  const meanY = points.reduce((sum, point) => sum + point.y, 0) / n;
+  let ssTot = 0;
+  let ssRes = 0;
+  for (const point of points) {
+    const predicted = fit.slope * point.x + fit.intercept;
+    ssRes += (point.y - predicted) ** 2;
+    ssTot += (point.y - meanY) ** 2;
+  }
+  if (ssTot === 0) return 0;
+  return 1 - ssRes / ssTot;
+}
+
+const MIN_FIT_POINTS = 5;
+const MAX_FIT_POINTS = 7;
+
+/** เลือกช่วง fit อัตโนมัติ: เลื่อนหน้าต่าง 5–7 จุดหลัง Dmax แล้วเลือกช่วงที่ R² สูงสุด */
+function autoFitRange(rows, dmax, criterion = 'r2') {
+  const valid = rows.filter((row) => row.adjusted !== null && row.depth !== null && row.adjusted !== undefined);
+  if (valid.length < MIN_FIT_POINTS + 1 || !Number.isFinite(dmax) || dmax <= 0) return null;
+
+  let maxIndex = 0;
+  valid.forEach((row, index) => {
+    if (row.adjusted > valid[maxIndex].adjusted) maxIndex = index;
+  });
+
+  const tail = valid.slice(maxIndex + 1);
+  if (tail.length < MIN_FIT_POINTS) return null;
+
+  const candidates = [];
+
+  for (const size of [MAX_FIT_POINTS, MAX_FIT_POINTS - 1, MIN_FIT_POINTS]) {
+    if (size > tail.length) continue;
+    for (let start = 0; start + size <= tail.length; start += 1) {
+      const window = tail.slice(start, start + size);
+      const points = window.map((row) => ({ x: row.depth, y: row.adjusted }));
+      const fit = linearFit(points);
+      if (!fit || !(fit.slope < 0)) continue;
+      candidates.push({
+        from: window[0].index,
+        to: window[window.length - 1].index,
+        fit,
+        r2: rSquared(points, fit),
+        points: size,
+      });
+    }
+  }
+
+  if (candidates.length === 0) return null;
+
+  let best = candidates[0];
+  for (const candidate of candidates) {
+    if (criterion === 'slope1') {
+      const distance = Math.abs(Math.abs(candidate.fit.slope) - 1);
+      const bestDistance = Math.abs(Math.abs(best.fit.slope) - 1);
+      if (distance < bestDistance - 1e-12 || (Math.abs(distance - bestDistance) < 1e-12 && candidate.r2 > best.r2)) {
+        best = candidate;
+      }
+    } else if (candidate.r2 > best.r2 + 1e-12) {
+      best = candidate;
+    } else if (Math.abs(candidate.r2 - best.r2) < 1e-12) {
+      // R² เท่ากัน: ใช้จำนวนจุดมากกว่า และเลือกช่วงที่ชันกว่า
+      if (candidate.points > best.points || (candidate.points === best.points && Math.abs(candidate.fit.slope) > Math.abs(best.fit.slope))) {
+        best = candidate;
+      }
+    }
+  }
+
+  return { from: best.from, to: best.to, r2: best.r2, slope: best.fit.slope, criterion, points: best.points };
+}
+
+/**
+ * @param {object} params
+ * @param {{depth:number|string|null, ai:number|string|null}[]} params.rows
+ * @param {number} params.ao
+ * @param {number} params.thickness
+ * @param {number} params.correction
+ * @param {{a:number,dose:number}[]} params.table
+ * @param {boolean} params.autoFit
+ * @param {number} params.fitFrom
+ * @param {number} params.fitTo
+ */
+/** กลับตาราง Dose: dose → response (interpolate) */
+function doseToResponse(dose, table) {
+  if (!Array.isArray(table) || table.length === 0) return null;
+  const first = table[0];
+  const last = table[table.length - 1];
+  if (dose <= first.dose) return first.a;
+  if (dose >= last.dose) return last.a;
+
+  for (let i = 1; i < table.length; i += 1) {
+    if (dose <= table[i].dose) {
+      const p0 = table[i - 1];
+      const p1 = table[i];
+      const span = p1.dose - p0.dose;
+      const t = span === 0 ? 0 : (dose - p0.dose) / span;
+      return p0.a + t * (p1.a - p0.a);
+    }
+  }
+  return last.a;
+}
+
+/**
+ * จำลอง depth–dose แบบเปอร์เซ็นต์ depth dose (PDD) ของลำอิเล็กตรอน
+ * แล้วแปลงกลับเป็นค่า Ai ผ่านตาราง Dose (Response → Dose)
+ */
+function simulateDepthDose({ energy, depths, table, ao = 0, thickness = 0.018 }) {
+  const e = Number(energy);
+  if (!Number.isFinite(e) || e <= 0.5) throw new Error('พลังงานต้องมากกว่า 0.5 MeV');
+  if (!Array.isArray(table) || table.length < 2) throw new Error('ต้องมีตาราง Dose (Response → Dose) ก่อน');
+  if (!Array.isArray(depths) || depths.length === 0) throw new Error('ไม่มีระยะลึกให้จำลอง');
+
+  const r50 = e / (0.99 * 6.2);
+  const rp = (e - 0.2) / (0.99 * 5.09);
+  if (!(rp > r50 + 1e-6)) throw new Error('พลังงานต่ำเกินไปสำหรับสูตรนี้');
+
+  const slope = -0.5 / (rp - r50);
+  const intercept = -slope * rp;
+  const zmax = rp + 1 / slope;
+
+  const maxTableDose = table.reduce((max, point) => (point.dose > max ? point.dose : max), 0);
+  const peakDose = maxTableDose * 0.92;
+
+  const rows = depths.map((rawDepth, index) => {
+    const depth = Number(rawDepth);
+    let relative;
+    if (depth <= zmax) {
+      const t = zmax > 0 ? depth / zmax : 1;
+      relative = 0.85 + 0.15 * t * t; // buildup จาก surface dose 85% ไปถึง 100% ที่ zmax
+    } else {
+      relative = 1 + slope * (depth - zmax); // ส่วนลดลงแบบเส้นตรง (tangent)
+    }
+    if (relative < 0.01) relative = 0.01;
+
+    const ripple = 1 + 0.002 * Math.sin(index * 1.7); // ripple เล็กน้อยให้เหมือนข้อมูลวัดจริง
+    const dose = Math.max(0, relative * peakDose * ripple);
+    const response = doseToResponse(dose, table);
+    const ai = response === null ? null : Number((response * thickness + ao).toFixed(4));
+
+    return { depth: Number.isFinite(depth) ? depth : null, ai };
+  });
+
+  return { rows, r50, rp, zmax, peakDose, slope, intercept };
+}
+function computeEnergy({ rows = [], ao = 0, thickness = 0.018, correction = 1, table = [], autoFit = true, fitFrom = 1, fitTo = 1, criterion = 'r2' }) {
+  const prepared = rows.map((row, index) => {
+    const depth = row && row.depth !== null && row.depth !== '' ? Number(row.depth) : NaN;
+    const ai = row && row.ai !== null && row.ai !== '' ? Number(row.ai) : NaN;
+
+    let response = null;
+    let dose = null;
+    let adjusted = null;
+
+    if (Number.isFinite(ai) && thickness > 0) {
+      response = (ai - ao) / thickness;
+      if (table.length > 0) {
+        dose = doseFromPoints(response, table);
+        if (dose !== null) adjusted = dose * correction;
+      }
+    }
+
+    return {
+      index: index + 1,
+      depth: Number.isFinite(depth) ? depth : null,
+      ai: Number.isFinite(ai) ? ai : null,
+      response,
+      dose,
+      adjusted,
+    };
+  });
+
+  const withDose = prepared.filter((row) => row.adjusted !== null && row.depth !== null);
+  const dmax = withDose.length > 0 ? Math.max(...withDose.map((row) => row.adjusted)) : null;
+
+  let range = null;
+  if (autoFit) {
+    range = autoFitRange(prepared, dmax, criterion);
+  } else {
+    range = { from: Number(fitFrom) || 1, to: Number(fitTo) || 1 };
+  }
+
+  const fitRows = range
+    ? prepared.filter(
+        (row) =>
+          row.index >= range.from &&
+          row.index <= range.to &&
+          row.depth !== null &&
+          row.adjusted !== null,
+      )
+    : [];
+
+  const fit = linearFit(fitRows.map((row) => ({ x: row.depth, y: row.adjusted })));
+  const r2 = fit ? rSquared(fitRows.map((row) => ({ x: row.depth, y: row.adjusted })), fit) : null;
+
+  let r50 = null;
+  let rp = null;
+  let ea = null;
+  let ep = null;
+  let error = '';
+  let warning = '';
+
+  if (table.length === 0) {
+    error = 'ยังไม่มีตารางสอบเทียบ (A → Dose) — นำเข้าที่แท็บสอบเทียบก่อน';
+  } else if (dmax === null) {
+    error = 'ยังไม่มีข้อมูลที่คำนวณโดสได้';
+  } else if (!range) {
+    error = 'จุดหลัง Dmax ไม่พอสำหรับลากเส้น tangent (ต้องมีอย่างน้อย 5 จุด)';
+  } else if (!fit) {
+    error = 'จำนวนจุดในช่วง fit ไม่พอ';
+  } else if (!(fit.slope < 0)) {
+    error = 'ความชันไม่ติดลบ — ช่วง fit ไม่เหมาะสม';
+  } else if (fitRows.length < MIN_FIT_POINTS) {
+    warning = `ช่วง fit มีเพียง ${fitRows.length} จุด (แนะนำอย่างน้อย ${MIN_FIT_POINTS} จุด)`;
+  }
+
+  if (!error) {
+    r50 = (dmax / 2 - fit.intercept) / fit.slope;
+    rp = -fit.intercept / fit.slope;
+    ea = 0.99 * 6.2 * r50;
+    ep = 0.99 * 5.09 * rp + 0.2;
+
+    if (r2 !== null && r2 < 0.98) {
+      warning = warning ? `${warning} · R² ต่ำ (${r2.toFixed(4)})` : `R² ต่ำ (${r2.toFixed(4)}) — ควรเลือกช่วงที่ตรงกว่า`;
+    }
+  }
+
+  return {
+    rows: prepared,
+    dmax,
+    range,
+    fit,
+    r2,
+    r50,
+    rp,
+    ea,
+    ep,
+    error,
+    warning,
+  };
+}
+
+/* ===== js/report.js ===== */
+/**
+ * report.js — สร้างโมเดลรายงาน, ไฟล์ Excel และหน้ารายงานสำหรับพิมพ์/บันทึกเป็น PDF
+ */
+
+/* ------------------------------------------------------------------ */
+/* formatting                                                          */
+/* ------------------------------------------------------------------ */
+function formatAbs(value) {
+  return value === null || value === undefined || !Number.isFinite(value) ? '—' : value.toFixed(3);
+}
+function formatDoseValue(value) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  const abs = Math.abs(value);
+  if (abs >= 100) return value.toFixed(1);
+  if (abs >= 10) return value.toFixed(2);
+  if (abs >= 1) return value.toFixed(3);
+  return value.toFixed(4);
+}
+
+function formatDateTime(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  return date.toLocaleString('th-TH', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  });
+}
+
+function formatTime(date) {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+  return date.toLocaleTimeString('th-TH', { hour12: false });
+}
+
+/* ------------------------------------------------------------------ */
+/* model                                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * @param {object} params
+ * @param {object[]} params.readings
+ * @param {object} params.calibration
+ * @param {object} params.settings
+ * @param {(r:object)=>number|null} params.doseOf
+ * @param {(r:object)=>number|null} params.absOf
+ */
+function buildReportModel({ readings, calibration, settings, doseOf, absOf, energy = null }) {
+  const isTable = calibration.mode === 'table';
+  const a0 = Number(calibration.a0) || 0;
+
+  const rows = (readings || []).map((reading, index) => {
+    const abs = absOf(reading);
+    return {
+      no: index + 1,
+      time: new Date(reading.t),
+      raw: reading.raw,
+      value: reading.value,
+      unit: reading.unit,
+      abs: abs === null || abs === undefined ? null : abs,
+      net: abs === null || abs === undefined ? null : abs - (isTable ? 0 : a0),
+      dose: doseOf(reading),
+      note: reading.note || '',
+    };
+  });
+
+  const absValues = rows.map((r) => r.abs).filter((v) => v !== null && Number.isFinite(v));
+  const n = rows.length;
+  const mean = absValues.length ? absValues.reduce((a, b) => a + b, 0) / absValues.length : null;
+  let sd = null;
+  if (absValues.length > 1 && mean !== null) {
+    const variance = absValues.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (absValues.length - 1);
+    sd = Math.sqrt(variance);
+  }
+
+  const points = Array.isArray(calibration.table) ? calibration.table : [];
+
+  return {
+    generatedAt: new Date(),
+    device: {
+      baudRate: settings.baudRate,
+      dataBits: settings.dataBits,
+      stopBits: settings.stopBits,
+      parity: settings.parity,
+      portLabel: settings.portLabel || '',
+    },
+    calibration: {
+      enabled: Boolean(calibration.enabled),
+      mode: isTable ? 'table' : 'formula',
+      a0: isTable ? null : a0,
+      k1: Number(calibration.k1) || 0,
+      k2: Number(calibration.k2) || 0,
+      unit: settings.doseUnit || 'Gy',
+      points: points.length,
+      range: points.length ? [points[0].a, points[points.length - 1].a] : null,
+      name: calibration.tableName || '',
+      table: points,
+    },
+    stats: {
+      n,
+      mean,
+      sd,
+      min: absValues.length ? Math.min(...absValues) : null,
+      max: absValues.length ? Math.max(...absValues) : null,
+    },
+    rows,
+    energy,
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Excel workbook                                                      */
+/* ------------------------------------------------------------------ */
+function buildReportWorkbook(model, images = {}) {
+  const readingsHeader = [
+    'ลำดับ', 'เวลา', 'ค่าดิบ', 'ค่า', 'หน่วย',
+    'Absorbance', 'Net absorbance', 'Dose', 'หน่วยโดส', 'หมายเหตุ',
+  ];
+
+  const readingRows = model.rows.map((row) => [
+    row.no,
+    formatDateTime(row.time),
+    row.raw,
+    Number.isFinite(row.value) ? row.value : '',
+    row.unit,
+    row.abs === null ? '' : Number(row.abs.toFixed(4)),
+    row.net === null ? '' : Number(row.net.toFixed(4)),
+    row.dose === null ? '' : Number(row.dose.toFixed(4)),
+    model.calibration.unit,
+    row.note,
+  ]);
+
+  const infoRows = [
+    ['รายงาน', model.energy && model.stats.n === 0 ? 'ผลการวัดพลังงานลำอิเล็กตรอน' : 'ผลการอ่านค่าจาก Spectrophotometer'],
+    ['สร้างเมื่อ', formatDateTime(model.generatedAt)],
+    ['จำนวนรายการ', model.stats.n],
+    ['ค่าเฉลี่ย (A)', model.stats.mean === null ? '' : Number(model.stats.mean.toFixed(4))],
+    ['SD (A)', model.stats.sd === null ? '' : Number(model.stats.sd.toFixed(4))],
+    ['ต่ำสุด (A)', model.stats.min === null ? '' : Number(model.stats.min.toFixed(4))],
+    ['สูงสุด (A)', model.stats.max === null ? '' : Number(model.stats.max.toFixed(4))],
+    ['การสอบเทียบ', model.calibration.mode === 'table' ? 'ตาราง (interpolation)' : 'สูตร k1/k2'],
+    ['A0', model.calibration.a0 === null ? 'ไม่ใช้ (โหมดตาราง)' : model.calibration.a0],
+    ['k1', model.calibration.k1],
+    ['k2', model.calibration.k2],
+    ['หน่วยโดส', model.calibration.unit],
+    ['จำนวนจุดในตาราง', model.calibration.points],
+    ['ช่วงตาราง (A)', model.calibration.range ? `${model.calibration.range[0]} – ${model.calibration.range[1]}` : ''],
+    ['ไฟล์ตาราง', model.calibration.name],
+    ['Baud rate', model.device.baudRate],
+    ['Data bits', model.device.dataBits],
+    ['Stop bits', model.device.stopBits],
+    ['Parity', model.device.parity],
+    ['โปรแกรม', 'Spectro Dose Reader (Web Serial)'],
+  ];
+
+  const calibrationRows =
+    model.calibration.mode === 'table' && model.calibration.points > 0
+      ? [['Absorbance', 'Dose'], ...(model.calibration.table || []).map((p) => [p.a, p.dose])]
+      : [
+          ['พารามิเตอร์', 'ค่า'],
+          ['A0', model.calibration.a0 === null ? 'ไม่ใช้ (โหมดตาราง)' : model.calibration.a0],
+          ['k1', model.calibration.k1],
+          ['k2', model.calibration.k2],
+          ['หน่วยโดส', model.calibration.unit],
+        ];
+
+  let energySheet = null;
+
+  if (model.energy) {
+    const e = model.energy;
+    const num = (value, digits = 3) => (value === null || value === undefined ? '' : Number(Number(value).toFixed(digits)));
+    const energyRows = [
+      ['รายการ', 'ค่า'],
+      ['พลังงาน Ea (MeV)', num(e.ea, 3)],
+      ['พลังงาน Ep (MeV)', num(e.ep, 3)],
+      ['Dmax', num(e.dmax, 3)],
+      ['R50 (cm)', num(e.r50, 3)],
+      ['Rp (cm)', num(e.rp, 3)],
+      ['ช่วง fit', e.fit.from === null ? '' : `${e.fit.from}–${e.fit.to} (${e.fit.auto ? 'อัตโนมัติ' : 'เลือกเอง'})`],
+      ['จำนวนจุด', e.fit.n],
+      ['slope', num(e.fit.slope, 4)],
+      ['R²', num(e.fit.r2, 5)],
+      ['หน่วยโดส', e.unit],
+      [],
+      ['#', 'Depth (cm)', 'Ai', 'Dose'],
+      ...e.rows.map((row) => [row.no, row.depth, row.ai, num(row.dose, 3)]),
+    ];
+    energySheet = { name: 'Energy', rows: energyRows };
+
+    infoRows.push(
+      [],
+      ['ผลการวัดพลังงาน', ''],
+      ['Ea (MeV)', num(e.ea, 3)],
+      ['Ep (MeV)', num(e.ep, 3)],
+      ['Dmax', num(e.dmax, 3)],
+      ['R50 (cm)', num(e.r50, 3)],
+      ['Rp (cm)', num(e.rp, 3)],
+      ['ช่วง fit', e.fit.from === null ? '' : `${e.fit.from}–${e.fit.to} (${e.fit.auto ? 'อัตโนมัติ' : 'เลือกเอง'})`],
+      ['R²', num(e.fit.r2, 5)],
+    );
+  }
+
+  const hasReadings = model.stats.n > 0;
+  const sheets = [];
+
+  // รายงานพลังงานล้วน: ให้ชีต Energy ขึ้นเป็นแผ่นแรกเลย จะได้เห็นข้อมูลทันที
+  if (energySheet && !hasReadings) sheets.push(energySheet);
+  if (hasReadings) sheets.push({ name: 'Readings', rows: [readingsHeader, ...readingRows] });
+  sheets.push({ name: 'Calibration', rows: calibrationRows });
+  if (energySheet && hasReadings) sheets.push(energySheet);
+  sheets.push({ name: 'Info', rows: infoRows });
+
+  // ฝังกราฟเป็นรูปในชีต (Excel อ่านรูปได้)
+  for (const sheet of sheets) {
+    if (sheet.name === 'Readings' && images.readings) {
+      sheet.images = [{ data: images.readings, width: 900, height: 260, fromCol: 9, fromRow: 1 }];
+    }
+    if (sheet.name === 'Energy' && images.energy) {
+      sheet.images = [{ data: images.energy, width: 900, height: 280, fromCol: 5, fromRow: 1 }];
+    }
+  }
+
+  return sheets;
+}
+
+/* ------------------------------------------------------------------ */
+/* print report (HTML)                                                 */
+/* ------------------------------------------------------------------ */
+
+function el(tag, className, text) {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text !== undefined && text !== null) node.textContent = String(text);
+  return node;
+}
+
+function metaItem(label, value) {
+  const box = el('div');
+  box.append(el('b', null, label), el('span', null, value));
+  return box;
+}
+function renderPrintReport(model, container, options = {}) {
+  container.replaceChildren();
+
+  const energy = model.energy;
+  const hasReadings = model.stats.n > 0;
+  const title = energy && !hasReadings
+    ? 'รายงานผลการวัดพลังงานลำอิเล็กตรอน'
+    : 'รายงานผลการอ่านค่าจาก Spectrophotometer';
+
+  const head = el('header', 'pr-head');
+  head.append(
+    el('h1', null, title),
+    el('p', null, `Thermo Spectronic Genesys 20 · สร้างเมื่อ ${formatDateTime(model.generatedAt)}`),
+  );
+
+  const calText =
+    model.calibration.mode === 'table'
+      ? `ตารางสอบเทียบ ${model.calibration.points} จุด${model.calibration.range ? ` (A ${formatAbs(model.calibration.range[0])} – ${formatAbs(model.calibration.range[1])})` : ''}`
+      : `สูตร D = k1·(A − A0) + k2·(A − A0)²  (k1=${model.calibration.k1}, k2=${model.calibration.k2})`;
+
+  const meta = el('div', 'pr-meta');
+  meta.append(
+    metaItem('จำนวนรายการ', `${model.stats.n} ค่า`),
+    metaItem('ค่าเฉลี่ย (A)', model.stats.mean === null ? '—' : model.stats.mean.toFixed(3)),
+    metaItem('SD (A)', model.stats.sd === null ? '—' : model.stats.sd.toFixed(4)),
+    metaItem('ช่วงค่า (A)', model.stats.min === null ? '—' : `${model.stats.min.toFixed(3)} – ${model.stats.max.toFixed(3)}`),
+    metaItem('A0 (blank)', model.calibration.a0 === null ? '—' : model.calibration.a0),
+    metaItem('การสอบเทียบ', calText),
+    metaItem('อุปกรณ์', `${model.device.baudRate} ${model.device.dataBits}-${String(model.device.parity).charAt(0).toUpperCase()}-${model.device.stopBits}`),
+  );
+
+  const table = el('table');
+  const thead = el('thead');
+  const headRow = el('tr');
+  for (const title of ['#', 'เวลา', 'ค่าที่อ่าน', 'A', 'Net A', 'โดส', `หน่วย`, 'หมายเหตุ']) {
+    headRow.appendChild(el('th', null, title));
+  }
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = el('tbody');
+  for (const row of model.rows) {
+    const tr = el('tr');
+    tr.append(
+      el('td', null, row.no),
+      el('td', null, formatTime(row.time)),
+      el('td', null, `${row.value} ${row.unit}`),
+      el('td', null, formatAbs(row.abs)),
+      el('td', null, formatAbs(row.net)),
+      el('td', null, formatDoseValue(row.dose)),
+      el('td', null, model.calibration.unit),
+      el('td', null, row.note),
+    );
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+
+  const foot = el('div', 'pr-foot');
+  foot.append(
+    el('span', null, 'Spectro Dose Reader — Genesys 20 (Web Serial)'),
+    el('span', null, `พิมพ์เมื่อ ${formatDateTime(new Date())}`),
+  );
+
+  const parts = [head];
+
+  if (hasReadings) {
+    parts.push(meta);
+
+    if (Array.isArray(options.charts)) {
+      for (const chart of options.charts) {
+        if (!chart || !chart.src) continue;
+        const figure = el('figure', 'pr-chart');
+        const img = document.createElement('img');
+        img.src = chart.src;
+        img.alt = chart.caption || 'กราฟ';
+        figure.append(img, el('figcaption', null, chart.caption || ''));
+        parts.push(figure);
+      }
+    }
+
+    if (options.note) {
+      parts.push(el('p', 'pr-note', options.note));
+    }
+
+    parts.push(table);
+  }
+
+  if (energy) {
+    parts.push(buildEnergyBlock(energy, options.energyChart));
+  }
+
+  parts.push(foot);
+  container.append(...parts);
+}
+
+function buildEnergyBlock(energy, chartSrc) {
+  const section = el('section', 'pr-energy');
+  section.appendChild(el('h2', null, 'ผลการวัดพลังงานลำอิเล็กตรอน'));
+
+  const grid = el('div', 'pr-meta');
+  grid.append(
+    metaItem('Dmax', energy.dmax === null ? '—' : `${energy.dmax.toFixed(3)} ${energy.unit}`),
+    metaItem('R50 (cm)', energy.r50 === null ? '—' : energy.r50.toFixed(3)),
+    metaItem('Rp (cm)', energy.rp === null ? '—' : energy.rp.toFixed(3)),
+    metaItem('Ea (MeV)', energy.ea === null ? '—' : energy.ea.toFixed(2)),
+    metaItem('Ep (MeV)', energy.ep === null ? '—' : energy.ep.toFixed(2)),
+    metaItem('ช่วง fit', energy.fit.from === null ? '—' : `${energy.fit.from}–${energy.fit.to} (${energy.fit.auto ? 'อัตโนมัติ' : 'เลือกเอง'}) · ${energy.fit.n} จุด`),
+    metaItem('slope / R²', `${energy.fit.slope === null ? '—' : energy.fit.slope.toFixed(4)} / ${energy.fit.r2 === null ? '—' : energy.fit.r2.toFixed(5)}`),
+    metaItem('อุปกรณ์', 'Genesys 20 · 552 nm'),
+  );
+  section.appendChild(grid);
+  section.appendChild(el('p', 'pr-note', 'tangent → R50/Rp → Ea/Ep (ISO/ASTM A3.19, A3.18 · ICRU 35)'));
+
+  if (chartSrc) {
+    const figure = el('figure', 'pr-chart');
+    const img = document.createElement('img');
+    img.src = chartSrc;
+    img.alt = 'กราฟ depth–dose';
+    figure.append(img, el('figcaption', null, 'กราฟ depth–dose (Dose vs Depth) พร้อมเส้น tangent'));
+    section.appendChild(figure);
+  }
+
+  const table = el('table');
+  const thead = el('thead');
+  const headRow = el('tr');
+  for (const heading of ['#', 'Depth (cm)', 'Ai', `Dose (${energy.unit})`]) {
+    headRow.appendChild(el('th', null, heading));
+  }
+  thead.appendChild(headRow);
+  table.appendChild(thead);
+
+  const tbody = el('tbody');
+  for (const row of energy.rows) {
+    const tr = el('tr');
+    tr.append(
+      el('td', null, row.no),
+      el('td', null, row.depth === null ? '—' : Number(row.depth).toFixed(4)),
+      el('td', null, formatAbs(row.ai)),
+      el('td', null, formatDoseValue(row.dose)),
+    );
+    tbody.appendChild(tr);
+  }
+  table.appendChild(tbody);
+  section.appendChild(table);
+
+  return section;
+}
+
+/* ===== js/app.js ===== */
+const $ = (id) => document.getElementById(id);
+
+const STORAGE_KEY = 'spectro-dose-reader/v1';
+const MAX_READINGS = 1500;
+const MAX_TABLE_ROWS = 250;
+const CHART_POINTS = 60;
+
+/* ------------------------------------------------------------------ */
+/* state                                                               */
+/* ------------------------------------------------------------------ */
+
+function defaultState() {
+  return {
+    settings: {
+      baudRate: 9600,
+      dataBits: 8,
+      stopBits: 1,
+      parity: 'none',
+      flowControl: 'none',
+      mode: 'auto',
+      regex: '',
+      lineEnding: 'CR',
+      command: 'SND',
+      doseUnit: 'Gy',
+      metric: 'abs',
+      hexRaw: false,
+      pollSec: 1,
+      lastVid: null,
+      lastPid: null,
+    },
+    calibration: { enabled: false, mode: 'formula', a0: 0, k1: 1, k2: 0, table: [], tableName: '' },
+    energy: {
+      autoFit: true,
+      fitFrom: 15,
+      fitTo: 21,
+      rows: createStandardRows(),
+    },
+    readings: [],
+    seq: 0,
+  };
+}
+
+function loadState() {
+  const base = defaultState();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return base;
+    const saved = JSON.parse(raw);
+    const energy = { ...base.energy, ...(saved.energy || {}) };
+    if (!Array.isArray(energy.rows) || energy.rows.length === 0) {
+      energy.rows = createStandardRows();
+    } else {
+      const hasData = energy.rows.some(
+        (row) => row && ((row.depth !== null && row.depth !== '') || (row.ai !== null && row.ai !== '')),
+      );
+      if (!hasData) energy.rows = createStandardRows();
+    }
+    return {
+      ...base,
+      ...saved,
+      settings: { ...base.settings, ...(saved.settings || {}) },
+      calibration: { ...base.calibration, ...(saved.calibration || {}) },
+      energy,
+      readings: Array.isArray(saved.readings) ? saved.readings.slice(-MAX_READINGS) : [],
+    };
+  } catch {
+    return base;
+  }
+}
+
+let state = loadState();
+let ignoredLines = 0;
+let rawLog = '';
+let rawRenderQueued = false;
+let demoTimer = 0;
+let pollTimer = 0;
+let toastTimer = 0;
+let saveTimer = 0;
+let sndPending = false;
+let sndTimer = 0;
+let modalOpen = false;
+let audioCtx = null;
+let ctrlDown = false;
+let shiftLeftDown = false;
+let shiftPending = false;
+let shiftTimer = 0;
+let lastEnergyResult = null;
+let energyAnchor = null;
+
+/* ------------------------------------------------------------------ */
+/* helpers                                                             */
+/* ------------------------------------------------------------------ */
+
+function num(value, fallback = 0) {  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch {
+      /* storage เต็มหรือถูกปิด — ไม่เป็นไร ยังใช้งานต่อได้ */
+    }
+  }, 250);
+}
+
+function toast(message) {
+  const el = $('toast');
+  el.textContent = message;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+
+function formatClock(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleTimeString('th-TH', { hour12: false });
+}
+
+function formatDateTime(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+}
+
+function doseOf(reading) {
+  const cal = state.calibration;
+  if (!cal.enabled) return null;
+  const abs = toAbsorbance(reading.value, reading.unit);
+  if (abs === null) return null;
+
+  if (cal.mode === 'table') {
+    // โหมดตาราง: ใช้ค่า A ตามที่วัดไปเทียบ map ตรง ๆ (ไม่หัก A0)
+    const table = Array.isArray(cal.table) ? cal.table : [];
+    if (table.length === 0) return null;
+    return doseFromPoints(abs, table);
+  }
+
+  const net = abs - num(cal.a0);
+  return num(cal.k1) * net + num(cal.k2) * net * net;
+}
+
+function nextId() {
+  state.seq = (state.seq || 0) + 1;
+  return `${Date.now().toString(36)}-${state.seq}`;
+}
+
+/* ------------------------------------------------------------------ */
+/* serial                                                              */
+/* ------------------------------------------------------------------ */
+
+const session = new SerialSession({
+  onLine: handleLine,
+  onRaw: handleRaw,
+  onStatus: handleStatus,
+  onError: handleSerialError,
+});
+
+function serialOptions() {
+  const s = state.settings;
+  return {
+    baudRate: num(s.baudRate, 9600),
+    dataBits: num(s.dataBits, 8),
+    stopBits: num(s.stopBits, 1),
+    parity: s.parity,
+    flowControl: s.flowControl,
+    bufferSize: 255,
+  };
+}
+
+/* ---------- รายการพอร์ต ---------- */
+
+let knownPorts = [];
+let selectedPortIndex = -1;
+
+const USB_CHIPS = {
+  '1a86:7523': 'CH340',
+  '1a86:5523': 'CH341',
+  '1a86:55d4': 'CH9102',
+  '0403:6001': 'FTDI FT232',
+  '0403:6015': 'FTDI FT231',
+  '067b:2303': 'PL2303',
+  '10c4:ea60': 'CP210x',
+  '10c4:ea70': 'CP2105',
+  '2341:0043': 'Arduino',
+};
+
+function hex4(value) {
+  return typeof value === 'number' ? value.toString(16).padStart(4, '0') : '';
+}
+
+function describePort(port, index) {
+  let info = {};
+  try {
+    info = typeof port.getInfo === 'function' ? port.getInfo() : {};
+  } catch {
+    info = {};
+  }
+  const key = hex4(info.usbVendorId) && hex4(info.usbProductId)
+    ? `${hex4(info.usbVendorId)}:${hex4(info.usbProductId)}`
+    : '';
+  const chip = key ? USB_CHIPS[key] : '';
+  const detail = chip ? ` — ${chip}` : key ? ` — USB ${key}` : '';
+  return `พอร์ต ${index + 1}${detail}`;
+}
+
+function renderPortOptions() {
+  const select = $('selPort');
+  const connected = Boolean(session.port);
+  select.replaceChildren();
+
+  if (knownPorts.length === 0) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = '— ยังไม่มีพอร์ตที่อนุญาต —';
+    select.appendChild(option);
+    selectedPortIndex = -1;
+    select.value = '';
+    select.disabled = connected;
+    return;
+  }
+
+  knownPorts.forEach((port, index) => {
+    const option = document.createElement('option');
+    option.value = String(index);
+    option.textContent = describePort(port, index);
+    select.appendChild(option);
+  });
+
+  selectedPortIndex = Math.min(Math.max(selectedPortIndex, 0), knownPorts.length - 1);
+  select.value = String(selectedPortIndex);
+  select.disabled = connected;
+}
+
+function rememberPort() {
+  const port = knownPorts[selectedPortIndex];
+  if (!port) return;
+  let info = {};
+  try {
+    info = typeof port.getInfo === 'function' ? port.getInfo() : {};
+  } catch {
+    info = {};
+  }
+  state.settings.lastVid = info.usbVendorId ?? null;
+  state.settings.lastPid = info.usbProductId ?? null;
+  save();
+}
+
+async function refreshPorts(preferredPort = null) {
+  if (!SerialSession.supported) return;
+  try {
+    const ports = await navigator.serial.getPorts();
+    if (preferredPort && !ports.includes(preferredPort)) ports.push(preferredPort);
+    knownPorts = ports;
+
+    if (preferredPort) {
+      const index = ports.indexOf(preferredPort);
+      if (index >= 0) selectedPortIndex = index;
+    }
+    renderPortOptions();
+  } catch {
+    /* เบราว์เซอร์อาจไม่ให้อ่านรายการ — ยังใช้ chooser ได้ */
+  }
+}
+
+async function initPorts() {
+  if (!SerialSession.supported) {
+    $('btnPickPort').disabled = true;
+    $('btnRefreshPorts').disabled = true;
+    $('selPort').disabled = true;
+    return;
+  }
+
+  await refreshPorts();
+
+  const { lastVid, lastPid } = state.settings;
+  if (lastVid !== null && lastPid !== null) {
+    const index = knownPorts.findIndex((port) => {
+      try {
+        const info = port.getInfo ? port.getInfo() : {};
+        return info.usbVendorId === lastVid && info.usbProductId === lastPid;
+      } catch {
+        return false;
+      }
+    });
+    if (index >= 0) {
+      selectedPortIndex = index;
+      renderPortOptions();
+    }
+  }
+
+  try {
+    navigator.serial.addEventListener('connect', () => { refreshPorts(); });
+    navigator.serial.addEventListener('disconnect', () => { refreshPorts(); });
+  } catch {
+    /* บางเบราว์เซอร์ไม่รองรับ event */
+  }
+}
+
+async function pickPort() {
+  try {
+    const port = await navigator.serial.requestPort();
+    await refreshPorts(port);
+    rememberPort();
+    toast('เพิ่มพอร์ตแล้ว — กด “เชื่อมต่อ” เพื่อเริ่มใช้งาน');
+  } catch (err) {
+    if (err && err.name === 'NotFoundError') return; // ผู้ใช้กดยกเลิก
+    toast(`เลือกพอร์ตไม่สำเร็จ: ${err && err.message ? err.message : err}`);
+  }
+}
+
+function setConnectedUI(connected) {
+  $('btnConnect').disabled = connected;
+  $('btnDisconnect').disabled = !connected;
+  $('btnSend').disabled = !connected;
+  $('btnSndTop').disabled = !connected;
+  $('btnCmdModel').disabled = !connected;
+  $('btnCmdRev').disabled = !connected;
+  $('selPort').disabled = connected;
+  $('btnPickPort').disabled = connected;
+  $('btnRefreshPorts').disabled = connected;
+  for (const id of ['selBaud', 'selDataBits', 'selStopBits', 'selParity', 'selFlow']) {
+    $(id).disabled = connected;
+  }
+  if (!SerialSession.supported) {
+    $('selPort').disabled = true;
+    $('btnPickPort').disabled = true;
+    $('btnRefreshPorts').disabled = true;
+  }
+}
+
+function setStatus(kind, text) {
+  $('statusChip').dataset.state = kind;
+  $('statusText').textContent = text;
+}
+
+function handleStatus(status) {
+  if (status === 'open') {
+    setStatus('connected', 'เชื่อมต่อแล้ว');
+    setConnectedUI(true);
+    $('actionNote').textContent = 'พร้อมอ่านค่า — กดปุ่มนี้หรือ Ctrl+Shift (ซ้าย)';
+    if ($('chkPoll').checked) startPoll();
+  } else if (status === 'closed') {
+    setStatus('idle', 'ยังไม่เชื่อมต่อ');
+    setConnectedUI(false);
+    $('actionNote').textContent = 'เชื่อมต่อก่อนเพื่อกดอ่านค่า · คีย์ลัด Ctrl+Shift (ซ้าย)';
+    stopPoll();
+  }
+}
+
+async function handleSerialError(err) {
+  const message = err && err.message ? err.message : String(err);
+  toast(`พอร์ตมีปัญหา: ${message}`);
+  stopPoll();
+  try {
+    await session.disconnect();
+  } catch {
+    /* ignore */
+  }
+  setConnectedUI(false);
+  setStatus('error', 'การเชื่อมต่อมีปัญหา');
+}
+
+async function connectSerial() {
+  if (!SerialSession.supported) {
+    toast('เบราว์เซอร์นี้ไม่รองรับ Web Serial — ใช้ Chrome หรือ Edge เวอร์ชันใหม่');
+    return;
+  }
+  if (demoTimer) toggleDemo();
+
+  $('btnConnect').disabled = true;
+  try {
+    const port = selectedPortIndex >= 0 ? knownPorts[selectedPortIndex] : null;
+    await session.connect(serialOptions(), port);
+    await refreshPorts(session.port);
+    rememberPort();
+  } catch (err) {
+    const name = err && err.name;
+    if (name === 'NotFoundError') toast('ยกเลิกการเลือกพอร์ต');
+    else if (name === 'SecurityError') toast('เบราว์เซอร์บล็อกสิทธิ์พอร์ตอนุกรม — ใช้ Chrome/Edge เวอร์ชันล่าสุด หรือเปิดผ่าน http://127.0.0.1');
+    else if (name === 'NetworkError' || name === 'InvalidStateError') toast('พอร์ตถูกใช้งานอยู่ — ปิดโปรแกรมอื่นที่ต่อพอร์ตนี้ก่อน');
+    else toast(`เชื่อมต่อไม่สำเร็จ: ${err && err.message ? err.message : err}`);
+  } finally {
+    $('btnConnect').disabled = Boolean(session.port);
+  }
+}
+
+async function disconnectSerial() {
+  try {
+    await session.disconnect();
+  } catch {
+    /* ignore */
+  } finally {
+    setConnectedUI(false);
+    setStatus('idle', 'ยังไม่เชื่อมต่อ');
+    void refreshPorts();
+  }
+}
+
+async function sendCommand() {
+  const text = $('inpCommand').value;
+  if (!text.trim()) {
+    toast('พิมพ์คำสั่งก่อน');
+    return;
+  }
+  try {
+    await session.send(text, state.settings.lineEnding);
+    if (text.trim().toUpperCase() === 'SND') armSndWait();
+  } catch (err) {
+    toast(`ส่งไม่สำเร็จ: ${err && err.message ? err.message : err}`);
+  }
+}
+
+/** ปุ่มคำสั่งสำเร็จรูปสำหรับรุ่นนี้ (SND = ขอค่าอ่าน, MODEL/REV = ข้อมูลเครื่อง) */
+function sendPreset(command) {
+  $('inpCommand').value = command;
+  state.settings.command = command;
+  state.settings.lineEnding = 'CR';
+  $('selLineEnding').value = 'CR';
+  save();
+  void sendCommand();
+}
+
+/* ---------- อ่านค่า SND + popup + เสียง ---------- */
+
+function primeAudio() {
+  try {
+    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtor) return;
+    if (!audioCtx) audioCtx = new AudioCtor();
+    if (audioCtx.state === 'suspended') void audioCtx.resume();
+  } catch {
+    /* ไม่มีเสียงก็ยังใช้งานได้ */
+  }
+}
+
+function playBeep() {
+  try {
+    if (!audioCtx || audioCtx.state !== 'running') return;
+    const now = audioCtx.currentTime;
+    for (const [index, frequency] of [880, 1180].entries()) {
+      const start = now + index * 0.12;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.18, start + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.11);
+      osc.connect(gain).connect(audioCtx.destination);
+      osc.start(start);
+      osc.stop(start + 0.13);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function armSndWait() {
+  sndPending = true;
+  clearTimeout(sndTimer);
+  sndTimer = setTimeout(() => {
+    if (!sndPending) return;
+    sndPending = false;
+    toast('ไม่ได้รับค่าจากเครื่องภายใน 5 วินาที');
+  }, 5000);
+}
+
+/** ส่งคำสั่ง SND เพื่อขอค่าอ่าน (ปุ่มด้านบน / คีย์ลัด) */
+function readNow() {
+  if (!session.port) {
+    toast('เชื่อมต่อก่อนจึงจะอ่านค่าได้');
+    return;
+  }
+  primeAudio();
+  void sendPreset('SND');
+}
+
+function armCtrlShift() {
+  shiftPending = true;
+  clearTimeout(shiftTimer);
+  shiftTimer = setTimeout(() => {
+    shiftPending = false;
+  }, 2500);
+}
+
+function cancelCtrlShift() {
+  shiftPending = false;
+  clearTimeout(shiftTimer);
+}
+
+function maybeFireCtrlShift() {
+  if (!shiftPending) return;
+  shiftPending = false;
+  clearTimeout(shiftTimer);
+  readNow();
+}
+
+function fireShortcutRead() {
+  shiftPending = false;
+  clearTimeout(shiftTimer);
+  readNow();
+}
+
+function showReadingPopup(reading) {
+  const dose = doseOf(reading);
+  $('modalAbs').textContent = formatValue(reading.value, reading.unit);
+  $('modalAbsUnit').textContent = reading.unit;
+  $('modalDose').textContent = dose === null ? '—' : formatDose(dose);
+  $('modalDoseUnit').textContent = state.settings.doseUnit;
+  $('modalRaw').textContent = reading.raw;
+  $('modalRaw').title = reading.raw;
+  $('modalTime').textContent = formatClock(reading.t);
+  $('readingModal').hidden = false;
+  modalOpen = true;
+  playBeep();
+  setTimeout(() => $('modalOk').focus(), 30);
+}
+
+function closeReadingPopup() {
+  if (!modalOpen) return;
+  $('readingModal').hidden = true;
+  modalOpen = false;
+}
+
+function startPoll() {
+  stopPoll();
+  const seconds = Math.max(0.2, num($('inpPollSec').value, 1));
+  const command = $('inpCommand').value.trim();
+  if (!command) {
+    toast('ต้องมีคำสั่งก่อนจึงจะส่งซ้ำได้');
+    $('chkPoll').checked = false;
+    return;
+  }
+  pollTimer = setInterval(() => {
+    session.send(command, state.settings.lineEnding).catch(() => {});
+  }, seconds * 1000);
+}
+
+function stopPoll() {
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = 0;
+}
+
+/* ------------------------------------------------------------------ */
+/* readings                                                            */
+/* ------------------------------------------------------------------ */
+
+function handleLine(line) {
+  const parsed = parseLine(line, { mode: state.settings.mode, regex: state.settings.regex });
+
+  if (!parsed.ok || parsed.value === null || !Number.isFinite(parsed.value)) {
+    ignoredLines += 1;
+    $('ignoredHits').textContent = `บรรทัดที่แยกค่าไม่ได้: ${ignoredLines}`;
+    return;
+  }
+
+  const reading = {
+    id: nextId(),
+    t: new Date().toISOString(),
+    raw: line,
+    value: parsed.value,
+    unit: parsed.unit,
+    note: '',
+  };
+
+  state.readings.push(reading);
+  if (state.readings.length > MAX_READINGS) {
+    state.readings.splice(0, state.readings.length - MAX_READINGS);
+  }
+  save();
+
+  renderCurrent(reading);
+  renderStats();
+  renderTable();
+  renderChart();
+
+  autoCaptureEnergyReading(reading);
+
+  if (sndPending) {
+    sndPending = false;
+    clearTimeout(sndTimer);
+    showReadingPopup(reading);
+  }
+}
+
+function lastReading() {
+  return state.readings.length ? state.readings[state.readings.length - 1] : null;
+}
+
+function renderCurrent(reading) {
+  const r = reading || lastReading();
+  $('curDoseUnit').textContent = state.settings.doseUnit;
+
+  if (!r) {
+    $('curValue').textContent = '—';
+    $('curUnit').textContent = 'A';
+    $('curTime').textContent = '—';
+    $('curRaw').textContent = 'ยังไม่มีข้อมูล';
+    $('curDose').textContent = '—';
+    $('doseBox').classList.add('off');
+    return;
+  }
+
+  $('curValue').textContent = formatValue(r.value, r.unit);
+  $('curUnit').textContent = r.unit === '%T' ? '%T' : 'A';
+  $('curTime').textContent = formatClock(r.t);
+  $('curRaw').textContent = r.raw;
+  $('curRaw').title = r.raw;
+
+  const dose = doseOf(r);
+  $('curDose').textContent = formatDose(dose);
+  $('doseBox').classList.toggle('off', dose === null);
+}
+
+function renderStats() {
+  const values = state.readings
+    .map((r) => toAbsorbance(r.value, r.unit))
+    .filter((v) => v !== null && Number.isFinite(v));
+
+  $('statN').textContent = String(state.readings.length);
+
+  if (values.length === 0) {
+    $('statMean').textContent = '—';
+    $('statSd').textContent = '—';
+    $('statMin').textContent = '—';
+    $('statMax').textContent = '—';
+    return;
+  }
+
+  const mean = values.reduce((a, b) => a + b, 0) / values.length;
+  let sd = '—';
+  if (values.length > 1) {
+    const variance = values.reduce((acc, v) => acc + (v - mean) ** 2, 0) / (values.length - 1);
+    sd = Math.sqrt(variance).toFixed(4);
+  }
+
+  $('statMean').textContent = mean.toFixed(3);
+  $('statSd').textContent = sd;
+  $('statMin').textContent = Math.min(...values).toFixed(3);
+  $('statMax').textContent = Math.max(...values).toFixed(3);
+}
+
+function buildRow(reading, index) {
+  const tr = document.createElement('tr');
+  tr.dataset.id = reading.id;
+
+  const tdNo = document.createElement('td');
+  tdNo.className = 'num';
+  tdNo.textContent = String(index);
+
+  const tdTime = document.createElement('td');
+  tdTime.className = 'num';
+  tdTime.textContent = formatClock(reading.t);
+
+  const tdValue = document.createElement('td');
+  tdValue.textContent = `${formatValue(reading.value, reading.unit)} ${reading.unit}`;
+
+  const abs = toAbsorbance(reading.value, reading.unit);
+  const tdAbs = document.createElement('td');
+  tdAbs.textContent = abs === null ? '—' : abs.toFixed(3);
+
+  const dose = doseOf(reading);
+  const tdDose = document.createElement('td');
+  tdDose.className = 'dose-cell';
+  tdDose.innerHTML = `<strong>${dose === null ? '—' : formatDose(dose)}</strong>${dose === null ? '' : ` <span class="muted">${state.settings.doseUnit}</span>`}`;
+
+  const tdRaw = document.createElement('td');
+  tdRaw.className = 'raw-cell';
+  tdRaw.textContent = reading.raw;
+  tdRaw.title = reading.raw;
+
+  const tdNote = document.createElement('td');
+  const note = document.createElement('input');
+  note.type = 'text';
+  note.className = 'note-input';
+  note.placeholder = '—';
+  note.value = reading.note || '';
+  note.setAttribute('aria-label', 'หมายเหตุ');
+  note.addEventListener('change', () => {
+    reading.note = note.value.trim();
+    save();
+  });
+  tdNote.appendChild(note);
+
+  const tdAction = document.createElement('td');
+  const del = document.createElement('button');
+  del.type = 'button';
+  del.className = 'icon-btn';
+  del.textContent = '×';
+  del.title = 'ลบรายการนี้';
+  del.setAttribute('aria-label', 'ลบรายการนี้');
+  del.addEventListener('click', () => {
+    state.readings = state.readings.filter((item) => item.id !== reading.id);
+    save();
+    refreshDerived();
+  });
+  tdAction.appendChild(del);
+
+  tr.append(tdNo, tdTime, tdValue, tdAbs, tdDose, tdRaw, tdNote, tdAction);
+  return tr;
+}
+
+function renderTable() {
+  const body = $('tblBody');
+  body.replaceChildren();
+
+  $('tblCount').textContent = String(state.readings.length);
+
+  if (state.readings.length === 0) {
+    const tr = document.createElement('tr');
+    tr.className = 'empty-row';
+    const td = document.createElement('td');
+    td.colSpan = 8;
+    td.textContent = 'ยังไม่มีข้อมูล — กด “เชื่อมต่อ” หรือ “ทดลองด้วยข้อมูลจำลอง”';
+    tr.appendChild(td);
+    body.appendChild(tr);
+    return;
+  }
+
+  const total = state.readings.length;
+  const slice = state.readings.slice(-MAX_TABLE_ROWS);
+  const frag = document.createDocumentFragment();
+
+  slice.forEach((reading, i) => {
+    frag.appendChild(buildRow(reading, total - slice.length + i + 1));
+  });
+
+  body.appendChild(frag);
+
+  // เลื่อนตารางไปแถวล่าสุดที่เพิ่งอ่าน (ทำซ้ำหลัง layout นิ่ง)
+  requestAnimationFrame(() => {
+    scrollReadingsToLatest();
+    setTimeout(scrollReadingsToLatest, 60);
+  });
+}
+
+function scrollReadingsToLatest() {
+  const view = $('readingsView');
+  if (view && view.hidden) return;
+  const wrap = view.querySelector('.table-wrap');
+  if (wrap) wrap.scrollTop = wrap.scrollHeight;
+}
+
+function renderChart() {
+  const activePanel = document.querySelector('.tab-panel.is-active');
+  const energyMode = activePanel && activePanel.dataset.panel === 'energy';
+
+  if (energyMode && lastEnergyResult) {
+    const points = lastEnergyResult.rows
+      .filter((row) => row.depth !== null && row.adjusted !== null)
+      .map((row) => ({ x: row.depth, y: row.adjusted }));
+    drawDepthDoseChart($('chart'), points, {
+      fit: lastEnergyResult.fit,
+      markers:
+        lastEnergyResult.r50 !== null && lastEnergyResult.dmax !== null
+          ? { r50: lastEnergyResult.r50, rp: lastEnergyResult.rp, dmax: lastEnergyResult.dmax }
+          : null,
+      unit: state.settings.doseUnit,
+    });
+    return;
+  }
+
+  const metric = state.settings.metric;
+  const values = state.readings
+    .map((r) => (metric === 'dose' ? doseOf(r) : toAbsorbance(r.value, r.unit)))
+    .filter((v) => v !== null && Number.isFinite(v))
+    .slice(-CHART_POINTS);
+
+  drawLineChart($('chart'), values);
+}
+
+function refreshDerived() {
+  renderCurrent();
+  renderStats();
+  renderTable();
+  renderChart();
+}
+
+/* ------------------------------------------------------------------ */
+/* parser test box                                                     */
+/* ------------------------------------------------------------------ */
+
+function reasonText(reason) {
+  return REASONS[reason] || 'อ่านค่าไม่ได้';
+}
+
+function updateTest() {
+  const line = $('testLine').value;
+  const output = $('testResult');
+
+  if (!line.trim()) {
+    output.textContent = '—';
+    delete output.dataset.state;
+    return;
+  }
+
+  const parsed = parseLine(line, { mode: state.settings.mode, regex: state.settings.regex });
+  if (!parsed.ok) {
+    output.textContent = `✕ ${reasonText(parsed.reason)}`;
+    output.dataset.state = 'bad';
+    return;
+  }
+
+  output.textContent = `✓ อ่านได้ ${formatValue(parsed.value, parsed.unit)} ${parsed.unit}`;
+  output.dataset.state = 'good';
+}
+
+/* ------------------------------------------------------------------ */
+/* raw monitor                                                         */
+/* ------------------------------------------------------------------ */
+
+const rawDecoder = new TextDecoder('utf-8', { fatal: false });
+
+function handleRaw(bytes) {
+  if (state.settings.hexRaw) {
+    rawLog += `${[...bytes].map((b) => b.toString(16).padStart(2, '0')).join(' ')}\n`;
+  } else {
+    rawLog += rawDecoder.decode(bytes, { stream: true });
+  }
+
+  if (rawLog.length > 20000) rawLog = rawLog.slice(-20000);
+  queueRawRender();
+}
+
+function queueRawRender() {
+  if (rawRenderQueued) return;
+  rawRenderQueued = true;
+  requestAnimationFrame(() => {
+    rawRenderQueued = false;
+    const details = $('rawDetails');
+    if (!details.open) return;
+    const box = $('rawLog');
+    const atBottom = box.scrollTop + box.clientHeight >= box.scrollHeight - 24;
+    box.textContent = rawLog;
+    if (atBottom) box.scrollTop = box.scrollHeight;
+  });
+}
+
+/* ------------------------------------------------------------------ */
+/* demo mode                                                           */
+/* ------------------------------------------------------------------ */
+
+function toggleDemo() {
+  if (demoTimer) {
+    clearInterval(demoTimer);
+    demoTimer = 0;
+    $('btnDemo').textContent = 'ทดลองด้วยข้อมูลจำลอง';
+    $('btnDemo').classList.remove('primary');
+    setStatus('idle', 'ยังไม่เชื่อมต่อ');
+    return;
+  }
+
+  if (session.port) {
+    toast('ตัดการเชื่อมต่อพอร์ตก่อนใช้โหมดทดลอง');
+    return;
+  }
+
+  $('btnDemo').textContent = 'หยุดโหมดทดลอง';
+  $('btnDemo').classList.add('primary');
+  setStatus('demo', 'โหมดทดลอง (ข้อมูลจำลอง)');
+
+  let base = 0.35 + Math.random() * 0.2;
+  demoTimer = setInterval(() => {
+    base += (Math.random() - 0.5) * 0.01;
+    base = Math.min(1.6, Math.max(0.02, base));
+    handleLine(`600NM ${base.toFixed(3)} A`);
+  }, 1500);
+}
+
+/* ------------------------------------------------------------------ */
+/* export / clear                                                      */
+/* ------------------------------------------------------------------ */
+
+function csvCell(value) {
+  const text = value === null || value === undefined ? '' : String(value);
+  return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+function exportCsv() {
+  if (state.readings.length === 0) {
+    toast('ยังไม่มีข้อมูลให้ส่งออก');
+    return;
+  }
+
+  const header = [
+    'no', 'time_iso', 'time_local', 'raw', 'value', 'unit',
+    'absorbance', 'net_absorbance', 'dose', 'dose_unit', 'note',
+  ];
+
+  const rows = state.readings.map((r, i) => {
+    const abs = toAbsorbance(r.value, r.unit);
+    const net = abs === null ? null : abs - num(state.calibration.a0);
+    const dose = doseOf(r);
+    return [
+      i + 1,
+      r.t,
+      formatDateTime(r.t),
+      r.raw,
+      r.value,
+      r.unit,
+      abs === null ? '' : abs.toFixed(4),
+      net === null ? '' : net.toFixed(4),
+      dose === null ? '' : dose.toFixed(4),
+      state.settings.doseUnit,
+      r.note || '',
+    ];
+  });
+
+  const csv = [header, ...rows].map((cols) => cols.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `dose-readings-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function exportEnergyCsv() {
+  const result = lastEnergyResult;
+  const filled = result ? result.rows.filter((row) => row.ai !== null && row.ai !== '') : [];
+  if (!result || filled.length === 0) {
+    toast('ยังไม่มีข้อมูลวัดพลังงานให้ส่งออก');
+    return;
+  }
+
+  const unit = state.settings.doseUnit || 'kGy';
+  const num = (value, digits = 3) => (value === null || value === undefined ? '' : Number(value).toFixed(digits));
+
+  const lines = [
+    ['# Spectro Dose Reader — วัดพลังงาน (อิเล็กตรอน)'],
+    ['# Ea (MeV)', num(result.ea, 2)],
+    ['# Ep (MeV)', num(result.ep, 2)],
+    [`# Dmax (${unit})`, num(result.dmax, 3)],
+    ['# R50 (cm)', num(result.r50, 3)],
+    ['# Rp (cm)', num(result.rp, 3)],
+    ['# ช่วง fit', result.range ? `${result.range.from}–${result.range.to}` : ''],
+    ['# R²', num(result.r2, 5)],
+    [],
+    ['#', 'Depth (cm)', 'Ai', `Dose (${unit})`],
+    ...result.rows.map((row, index) => [
+      index + 1,
+      row.depth === null ? '' : row.depth,
+      row.ai === null || row.ai === '' ? '' : row.ai,
+      row.adjusted === null ? '' : Number(row.adjusted.toFixed(3)),
+    ]),
+  ];
+
+  const csv = lines.map((cols) => cols.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([`\ufeff${csv}`], { type: 'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `energy-dose-${stamp}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function clearAll() {
+  if (state.readings.length === 0) return;
+  if (!window.confirm(`ลบข้อมูลทั้งหมด ${state.readings.length} รายการ?`)) return;
+  state.readings = [];
+  save();
+  refreshDerived();
+  toast('ล้างข้อมูลแล้ว');
+}
+
+/* ------------------------------------------------------------------ */
+/* calibration table (import)                                          */
+/* ------------------------------------------------------------------ */
+
+function updateCalibrationUI() {
+  const cal = state.calibration;
+  const isTable = cal.mode === 'table';
+  $('formulaFields').hidden = isTable;
+  $('a0Field').hidden = isTable;
+  $('btnSetA0').hidden = isTable;
+
+  const formula = $('calFormula');
+  if (isTable) {
+    formula.textContent = 'D = interpolate จากตาราง (ใช้ค่า A ตามที่วัดตรง ๆ)';
+  } else {
+    formula.innerHTML = 'D = k<sub>1</sub>&middot;(A &minus; A<sub>0</sub>) + k<sub>2</sub>&middot;(A &minus; A<sub>0</sub>)<sup>2</sup>';
+  }
+
+  const info = $('calTableInfo');
+  const preview = $('calPreview');
+  updateCalTest();
+
+  if (!isTable) return;
+
+  if (!cal.table || cal.table.length === 0) {
+    info.textContent = 'ยังไม่มีตาราง — กด “นำเข้าตารางสอบเทียบ” เพื่อเลือกไฟล์ Excel/CSV';
+    preview.hidden = true;
+    preview.open = false;
+    $('calPreviewBody').replaceChildren();
+    return;
+  }
+
+  const first = cal.table[0];
+  const last = cal.table[cal.table.length - 1];
+  info.textContent = `${cal.tableName || 'ตารางสอบเทียบ'} · ${cal.table.length} จุด · A ${first.a.toFixed(3)} – ${last.a.toFixed(3)} → โดส ${first.dose.toFixed(2)} – ${last.dose.toFixed(2)} ${state.settings.doseUnit}`;
+  preview.hidden = false;
+  renderCalPreview();
+}
+
+/** ทดสอบ map: ใส่ค่า A แล้วดูว่าได้โดสเท่าไร (เทียบกับ Excel ได้เลย) */
+function updateCalTest() {
+  const input = $('inpCalTest');
+  const output = $('calTestResult');
+  if (!input || !output) return;
+
+  const raw = input.value.trim();
+  if (!raw) {
+    output.textContent = '—';
+    delete output.dataset.state;
+    return;
+  }
+
+  const absorbance = Number(raw);
+  const table = Array.isArray(state.calibration.table) ? state.calibration.table : [];
+
+  if (!Number.isFinite(absorbance)) {
+    output.textContent = 'ค่าไม่ถูกต้อง';
+    output.dataset.state = 'bad';
+    return;
+  }
+  if (table.length === 0) {
+    output.textContent = 'ยังไม่มีตาราง';
+    delete output.dataset.state;
+    return;
+  }
+
+  const dose = doseFromPoints(absorbance, table);
+  if (dose === null) {
+    output.textContent = 'หาไม่พบ';
+    output.dataset.state = 'bad';
+    return;
+  }
+
+  const outside = absorbance < table[0].a || absorbance > table[table.length - 1].a;
+  output.textContent = `${dose.toFixed(4)} ${state.settings.doseUnit}${outside ? ' (นอกช่วงตาราง)' : ''}`;
+  output.dataset.state = outside ? 'bad' : 'good';
+}
+
+function renderCalPreview() {
+  const body = $('calPreviewBody');
+  body.replaceChildren();
+  const points = state.calibration.table || [];
+  points.slice(0, 40).forEach((point, index) => {
+    const tr = document.createElement('tr');
+    const tdNo = document.createElement('td');
+    tdNo.className = 'num';
+    tdNo.textContent = String(index + 1);
+    const tdA = document.createElement('td');
+    tdA.textContent = point.a.toFixed(4);
+    const tdD = document.createElement('td');
+    tdD.textContent = point.dose.toFixed(4);
+    tr.append(tdNo, tdA, tdD);
+    body.appendChild(tr);
+  });
+}
+
+async function importCalibration(file) {
+  try {
+    const name = file.name.toLowerCase();
+    let rows;
+
+    if (name.endsWith('.csv') || name.endsWith('.txt')) {
+      rows = parseCsv(await file.text());
+    } else {
+      const workbook = await readXlsx(await file.arrayBuffer());
+      rows = workbook.sheets[0] ? workbook.sheets[0].rows : [];
+    }
+
+    const result = buildCalibrationPoints(rows);
+    if (result.points.length === 0) {
+      toast('ไม่พบข้อมูลในคอลัมน์ A (absorbance) และ B (dose)');
+      return;
+    }
+
+    state.calibration.table = result.points.slice(0, 5000);
+    state.calibration.tableName = file.name;
+    state.calibration.mode = 'table';
+    state.calibration.enabled = true;
+    $('selCalMode').value = 'table';
+    $('chkCalib').checked = true;
+
+    // ตารางรูปแบบนี้เก็บโดสเป็น kGy — ตั้งหน่วยให้ตรง (ถ้าหัวตารางระบุหน่วยอื่นจะใช้ค่านั้น)
+    if (result.unit) {
+      state.settings.doseUnit = result.unit;
+      $('selDoseUnit').value = result.unit;
+    }
+
+    save();
+    updateCalibrationUI();
+    refreshDerived();
+    updateEnergyUI();
+    activateTab('cal');
+    toast(`นำเข้าตารางสอบเทียบ ${result.points.length} จุด (หน่วย ${result.unit || 'kGy'})`);
+  } catch (err) {
+    toast(`อ่านไฟล์ไม่สำเร็จ: ${err && err.message ? err.message : err}`);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* energy measurement (electron beam)                                  */
+/* ------------------------------------------------------------------ */
+
+function renderEnergyTable() {
+  const body = $('energyRows');
+  body.replaceChildren();
+
+  state.energy.rows.forEach((row, index) => {
+    const tr = document.createElement('tr');
+
+    const tdNo = document.createElement('td');
+    tdNo.textContent = String(index + 1);
+
+    const tdDepth = document.createElement('td');
+    const depth = document.createElement('input');
+    depth.type = 'number';
+    depth.step = '0.001';
+    depth.inputMode = 'decimal';
+    depth.placeholder = '0.000';
+    depth.value = row.depth === null || row.depth === undefined ? '' : String(row.depth);
+    depth.addEventListener('input', () => {
+      row.depth = depth.value === '' ? null : Number(depth.value);
+      save();
+      computeEnergyUI();
+    });
+    tdDepth.appendChild(depth);
+
+    const tdAi = document.createElement('td');
+    const ai = document.createElement('input');
+    ai.type = 'number';
+    ai.step = '0.0001';
+    ai.inputMode = 'decimal';
+    ai.placeholder = '—';
+    ai.value = row.ai === null || row.ai === undefined ? '' : String(row.ai);
+    ai.addEventListener('input', () => {
+      row.ai = ai.value === '' ? null : Number(ai.value);
+      save();
+      computeEnergyUI();
+    });
+    tdAi.appendChild(ai);
+
+    const tdDose = document.createElement('td');
+    tdDose.className = 'dose-cell';
+    tdDose.textContent = '—';
+
+    tr.append(tdNo, tdDepth, tdAi, tdDose);
+
+    tr.addEventListener('click', (event) => {
+      const target = event.target;
+      if (target && target.tagName === 'INPUT') return;
+      selectEnergyRow(index + 1);
+    });
+
+    body.appendChild(tr);
+  });
+}
+
+/** คลิกแถวแรก = จุดเริ่ม, คลิกที่สอง = จุดสิ้นสุด (คลิกครั้งแรกจะสลับเป็นโหมดเลือกเอง) */
+function selectEnergyRow(rowNumber) {
+  if (state.energy.autoFit !== false) {
+    state.energy.autoFit = false;
+    $('chkEnergyAutoFit').checked = false;
+    $('energyFitFields').hidden = false;
+    energyAnchor = null;
+  }
+
+  if (energyAnchor === null) {
+    energyAnchor = rowNumber;
+    state.energy.fitFrom = rowNumber;
+    state.energy.fitTo = rowNumber;
+  } else {
+    state.energy.fitFrom = Math.min(energyAnchor, rowNumber);
+    state.energy.fitTo = Math.max(energyAnchor, rowNumber);
+    energyAnchor = null;
+  }
+
+  $('inpEnergyFitFrom').value = String(state.energy.fitFrom);
+  $('inpEnergyFitTo').value = String(state.energy.fitTo);
+  save();
+  computeEnergyUI();
+}
+
+function computeEnergyUI() {
+  const energy = state.energy;
+  const auto = energy.autoFit !== false;
+  const result = computeEnergy({
+    rows: energy.rows,
+    ao: 0,
+    thickness: 1,
+    correction: 1,
+    table: state.calibration.table || [],
+    autoFit: auto,
+    criterion: 'r2',
+    fitFrom: energy.fitFrom,
+    fitTo: energy.fitTo,
+  });
+
+  const body = $('energyRows');
+  result.rows.forEach((row, index) => {
+    const tr = body.children[index];
+    if (!tr) return;
+    const cell = tr.lastElementChild;
+    cell.textContent = row.adjusted === null ? '—' : row.adjusted.toFixed(3);
+  });
+  lastEnergyResult = result;
+
+  const from = result.range ? result.range.from : null;
+  const to = result.range ? result.range.to : null;
+  [...body.children].forEach((tr, index) => {
+    const inRange = from !== null && index + 1 >= from && index + 1 <= to && result.fit !== null;
+    tr.classList.toggle('selected', inRange);
+  });
+
+  const unit = state.settings.doseUnit || 'kGy';
+  $('enDmax').textContent = result.dmax === null ? '—' : `${result.dmax.toFixed(3)} ${unit}`;
+  $('enR50').textContent = result.r50 === null ? '—' : result.r50.toFixed(3);
+  $('enRp').textContent = result.rp === null ? '—' : result.rp.toFixed(3);
+  $('enEa').textContent = result.ea === null ? '—' : result.ea.toFixed(2);
+  $('enEp').textContent = result.ep === null ? '—' : result.ep.toFixed(2);
+
+  const progress = $('energyProgress');
+  if (progress) {
+    const filled = energy.rows.filter((row) => row.ai !== null && row.ai !== '').length;
+    progress.textContent = `${filled}/${energy.rows.length}`;
+  }
+
+  if (result.error) {
+    $('energyNote').textContent = result.error;
+    $('energyR2').textContent = 'R² = —';
+    delete $('energyR2').dataset.state;
+  } else {
+    const range = result.range ? `แถว ${result.range.from}–${result.range.to}` : '—';
+    const r2Text = result.r2 === null || result.r2 === undefined ? '—' : result.r2.toFixed(5);
+    $('energyR2').textContent = `R² = ${r2Text} · slope ${result.fit.slope.toFixed(3)} · ${result.fit.n} จุด`;
+    $('energyR2').dataset.state = result.r2 !== null && result.r2 >= 0.98 ? 'good' : 'bad';
+
+    const parts = [
+      `fit ${range}${auto ? ' (อัตโนมัติ)' : ' (เลือกเอง)'}`,
+      'tangent → R50/Rp → Ea/Ep (ISO/ASTM A3.19, A3.18 · ICRU 35)',
+    ];
+    if (result.warning) parts.push(`⚠ ${result.warning}`);
+    $('energyNote').textContent = parts.join(' · ');
+  }
+
+  const activePanel = document.querySelector('.tab-panel.is-active');
+  if (activePanel && activePanel.dataset.panel === 'energy') renderChart();
+}
+
+function updateEnergyUI() {
+  const energy = state.energy;
+
+  $('inpEnergyFitFrom').value = String(energy.fitFrom);
+  $('inpEnergyFitTo').value = String(energy.fitTo);
+
+  const auto = energy.autoFit !== false;
+  $('chkEnergyAutoFit').checked = auto;
+  $('energyFitFields').hidden = auto;
+
+  const table = state.calibration.table || [];
+  const info = $('energyCalInfo');
+  if (table.length === 0) {
+    info.textContent = 'ยังไม่มีตารางสอบเทียบ — นำเข้าที่แท็บ “สอบเทียบ” ก่อน (แท็บนี้ใช้ตารางเดียวกัน)';
+  } else {
+    const first = table[0];
+    const last = table[table.length - 1];
+    info.textContent = `ใช้ตารางสอบเทียบร่วมกับแท็บสอบเทียบ: ${table.length} จุด · A ${first.a.toFixed(3)} – ${last.a.toFixed(3)} → ${state.settings.doseUnit}`;
+  }
+
+  computeEnergyUI();
+}
+
+function addEnergyRows(count = 6) {
+  for (let i = 0; i < count; i += 1) state.energy.rows.push({ depth: null, ai: null });
+  save();
+  renderEnergyTable();
+  computeEnergyUI();
+}
+
+function clearEnergyRows() {
+  if (!window.confirm('ล้างค่า Ai ทั้งหมด และคืนระยะลึกมาตรฐาน 60 ระดับ?')) return;
+  state.energy.rows = createStandardRows();
+  save();
+  renderEnergyTable();
+  computeEnergyUI();
+}
+
+function captureLatestToEnergy() {
+  const reading = lastReading();
+  if (!reading) {
+    toast('ยังไม่มีค่าที่อ่านได้');
+    return;
+  }
+  const abs = toAbsorbance(reading.value, reading.unit);
+  if (abs === null) {
+    toast('ค่าล่าสุดแปลงเป็น absorbance ไม่ได้');
+    return;
+  }
+
+  let target = state.energy.rows.find((row) => row.ai === null || row.ai === '');
+  if (!target) {
+    target = { depth: null, ai: null };
+    state.energy.rows.push(target);
+  }
+  target.ai = Number(abs.toFixed(4));
+  const index = state.energy.rows.indexOf(target);
+
+  save();
+  renderEnergyTable();
+  computeEnergyUI();
+
+  const rowEl = $('energyRows').children[index];
+  if (rowEl) rowEl.scrollIntoView({ block: 'center' });
+  toast(`เก็บค่า Ai = ${abs.toFixed(4)} ที่แถว ${index + 1}`);
+}
+
+/** ถ้าอยู่แท็บพลังงาน ให้เติมค่า Ai ลงแถวว่างถัดไปตามลำดับระยะลึกอัตโนมัติ */
+function autoCaptureEnergyReading(reading) {
+  const panel = document.querySelector('.tab-panel.is-active');
+  if (!panel || panel.dataset.panel !== 'energy') return;
+
+  const abs = toAbsorbance(reading.value, reading.unit);
+  if (abs === null) return;
+
+  const target = state.energy.rows.find((row) => row.ai === null || row.ai === '');
+  if (!target) return;
+
+  target.ai = Number(abs.toFixed(4));
+  const index = state.energy.rows.indexOf(target);
+
+  save();
+  renderEnergyTable();
+  computeEnergyUI();
+
+  const rowEl = $('energyRows').children[index];
+  if (rowEl) rowEl.scrollIntoView({ block: 'center' });
+}
+
+/** จำลอง depth–dose ตามพลังงาน แล้วเติม Ai ลง 60 แถว (ใช้ตารางสอบเทียบ A → Dose) */
+function runEnergySimulation() {
+  const energy = num($('inpSimEnergy').value, 0);
+  const table = state.calibration.table || [];
+
+  if (table.length < 2) {
+    toast('นำเข้าตารางสอบเทียบที่แท็บ “สอบเทียบ” ก่อนจำลอง');
+    return;
+  }
+
+  try {
+    const depths = state.energy.rows
+      .map((row, index) => {
+        const depth = row && row.depth !== null && row.depth !== '' ? Number(row.depth) : NaN;
+        return Number.isFinite(depth) ? depth : STANDARD_DEPTHS[index] ?? null;
+      })
+      .filter((depth) => depth !== null);
+
+    const simulation = simulateDepthDose({ energy, depths, table, ao: 0, thickness: 1 });
+
+    state.energy.rows = simulation.rows;
+    save();
+    activateTab('energy');
+    renderEnergyTable();
+    updateEnergyUI();
+
+    const result = computeEnergy({
+      rows: state.energy.rows,
+      ao: 0,
+      thickness: 1,
+      correction: 1,
+      table,
+      autoFit: false,
+      fitFrom: state.energy.fitFrom,
+      fitTo: state.energy.fitTo,
+    });
+
+    if (result.error) {
+      toast(`จำลอง ${energy} MeV แล้ว แต่ยังคำนวณไม่ได้: ${result.error}`);
+    } else {
+      toast(`จำลอง ${energy} MeV → Ea ${result.ea.toFixed(2)} · Ep ${result.ep.toFixed(2)} MeV`);
+    }
+  } catch (err) {
+    toast(`จำลองไม่สำเร็จ: ${err && err.message ? err.message : err}`);
+  }
+}
+
+function bindEnergy() {
+  $('btnSimRun').addEventListener('click', runEnergySimulation);
+  $('chkEnergyAutoFit').addEventListener('change', (event) => {
+    state.energy.autoFit = event.target.checked;
+    $('energyFitFields').hidden = event.target.checked;
+    save();
+    computeEnergyUI();
+  });
+  $('inpEnergyFitFrom').addEventListener('input', (event) => {
+    state.energy.fitFrom = num(event.target.value, 1);
+    energyAnchor = null;
+    save();
+    computeEnergyUI();
+  });
+  $('inpEnergyFitTo').addEventListener('input', (event) => {
+    state.energy.fitTo = num(event.target.value, 2);
+    energyAnchor = null;
+    save();
+    computeEnergyUI();
+  });
+
+  $('btnEnergyAdd').addEventListener('click', () => addEnergyRows(6));
+  $('btnEnergyClear').addEventListener('click', clearEnergyRows);
+  $('btnEnergyCapture').addEventListener('click', captureLatestToEnergy);
+  $('btnEnergyCsv').addEventListener('click', exportEnergyCsv);
+}
+
+/* ------------------------------------------------------------------ */
+/* reports                                                             */
+/* ------------------------------------------------------------------ */
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function currentEnergyReport() {
+  const result = lastEnergyResult;
+  if (!result || result.error || !result.fit || result.r2 === null) return null;
+
+  const rows = result.rows
+    .filter((row) => row.depth !== null && row.ai !== null && row.ai !== '' && row.adjusted !== null)
+    .map((row, index) => ({ no: index + 1, depth: row.depth, ai: row.ai, dose: row.adjusted }));
+
+  if (rows.length < 2) return null;
+
+  return {
+    unit: state.settings.doseUnit || 'kGy',
+    dmax: result.dmax,
+    r50: result.r50,
+    rp: result.rp,
+    ea: result.ea,
+    ep: result.ep,
+    fit: {
+      from: result.range ? result.range.from : null,
+      to: result.range ? result.range.to : null,
+      n: result.fit.n,
+      slope: result.fit.slope,
+      r2: result.r2,
+      auto: state.energy.autoFit !== false,
+    },
+    rows,
+  };
+}
+
+function activeReportMode() {
+  const panel = document.querySelector('.tab-panel.is-active');
+  return panel && panel.dataset.panel === 'energy' ? 'energy' : 'readings';
+}
+
+function reportModelFor(mode) {
+  return buildReportModel({
+    readings: mode === 'energy' ? [] : state.readings,
+    calibration: state.calibration,
+    settings: state.settings,
+    doseOf,
+    absOf: (reading) => toAbsorbance(reading.value, reading.unit),
+    energy: mode === 'energy' ? currentEnergyReport() : null,
+  });
+}
+
+function energyChartImage(width = 1100, height = 340) {
+  const result = lastEnergyResult;
+  if (!result || !result.fit) return '';
+
+  const points = result.rows
+    .filter((row) => row.depth !== null && row.adjusted !== null)
+    .map((row) => ({ x: row.depth, y: row.adjusted }));
+  if (points.length < 2) return '';
+
+  const canvas = document.createElement('canvas');
+  drawDepthDoseChart(canvas, points, {
+    width,
+    height,
+    unit: state.settings.doseUnit,
+    fit: result.fit,
+    markers:
+      result.r50 !== null && result.dmax !== null
+        ? { r50: result.r50, rp: result.rp, dmax: result.dmax }
+        : null,
+  });
+
+  try {
+    return canvas.toDataURL('image/png');
+  } catch {
+    return '';
+  }
+}
+
+function exportExcel() {
+  const mode = activeReportMode();
+  const model = reportModelFor(mode);
+
+  if (mode === 'energy' && !model.energy) {
+    toast('ยังไม่มีข้อมูลวัดพลังงานให้ทำรายงาน');
+    return;
+  }
+  if (mode === 'readings' && state.readings.length === 0) {
+    toast('ยังไม่มีข้อมูลให้ทำรายงาน');
+    return;
+  }
+
+  try {
+    const images = {};
+    if (mode === 'energy') {
+      const image = energyChartImage(900, 280);
+      if (image) images.energy = image;
+    } else {
+      const doseValues = state.readings
+        .map((reading) => doseOf(reading))
+        .filter((value) => value !== null && Number.isFinite(value))
+        .slice(-120);
+      const image = chartImageFor(doseValues, {
+        width: 900,
+        height: 260,
+        color: '#b45309',
+        fillColor: 'rgba(180, 83, 9, 0.10)',
+      });
+      if (image) images.readings = image;
+    }
+
+    const bytes = buildXlsx(buildReportWorkbook(model, images));
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    downloadBlob(
+      new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      mode === 'energy' ? `dose-report-energy-${stamp}.xlsx` : `dose-report-${stamp}.xlsx`,
+    );
+    toast(mode === 'energy' ? 'สร้างไฟล์ Excel (ชีต Energy) แล้ว' : 'สร้างไฟล์ Excel แล้ว');
+  } catch (err) {
+    toast(`สร้าง Excel ไม่สำเร็จ: ${err && err.message ? err.message : err}`);
+  }
+}
+
+function chartImageFor(values, style = {}) {
+  if (!values || values.length < 2) return '';
+  const canvas = document.createElement('canvas');
+  drawLineChart(canvas, values, { width: 1100, height: 320, ...style });
+  try {
+    return canvas.toDataURL('image/png');
+  } catch {
+    return '';
+  }
+}
+
+function buildReportCharts() {
+  const charts = [];
+  let note = '';
+
+  // รายงานใช้เฉพาะกราฟโดส (ไม่แสดงกราฟ absorbance)
+  const doseValues = state.readings
+    .map((reading) => doseOf(reading))
+    .filter((value) => value !== null && Number.isFinite(value))
+    .slice(-120);
+
+  const doseImage = chartImageFor(doseValues, { color: '#b45309', fillColor: 'rgba(180, 83, 9, 0.10)' });
+  if (doseImage) {
+    const source = state.calibration.mode === 'table' ? 'จากตารางสอบเทียบ' : 'จากสูตร k₁/k₂';
+    charts.push({
+      src: doseImage,
+      color: '#b45309',
+      fillColor: 'rgba(180, 83, 9, 0.10)',
+      caption: `กราฟแนวโน้มค่าโดส (${state.settings.doseUnit}) — ${source}`,
+    });
+  } else if (doseValues.length < 2) {
+    note = 'ยังไม่มีกราฟโดส — ต้องเปิดใช้เส้นสอบเทียบและมีค่าที่อ่านได้อย่างน้อย 2 ค่า';
+  }
+
+  return { charts, note };
+}
+
+function exportPdf() {
+  const mode = activeReportMode();
+  const model = reportModelFor(mode);
+
+  if (mode === 'energy' && !model.energy) {
+    toast('ยังไม่มีข้อมูลวัดพลังงานให้ทำรายงาน');
+    return;
+  }
+  if (mode === 'readings' && state.readings.length === 0) {
+    toast('ยังไม่มีข้อมูลให้ทำรายงาน');
+    return;
+  }
+
+  try {
+    if (mode === 'energy') {
+      renderPrintReport(model, $('printReport'), { charts: [], note: '', energyChart: energyChartImage() });
+    } else {
+      const { charts, note } = buildReportCharts();
+      renderPrintReport(model, $('printReport'), { charts, note });
+    }
+    window.print();
+  } catch (err) {
+    toast(`สร้างรายงานไม่สำเร็จ: ${err && err.message ? err.message : err}`);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* init                                                                */
+/* ------------------------------------------------------------------ */
+
+function initModes() {
+  const select = $('selMode');
+  select.replaceChildren();
+  for (const mode of MODES) {
+    const option = document.createElement('option');
+    option.value = mode.id;
+    option.textContent = mode.label;
+    select.appendChild(option);
+  }
+}
+
+function restoreControls() {
+  const s = state.settings;
+  const c = state.calibration;
+
+  $('selBaud').value = String(s.baudRate);
+  $('selDataBits').value = String(s.dataBits);
+  $('selStopBits').value = String(s.stopBits);
+  $('selParity').value = s.parity;
+  $('selFlow').value = s.flowControl;
+  $('selMode').value = s.mode;
+  $('inpRegex').value = s.regex;
+  $('selLineEnding').value = s.lineEnding;
+  $('inpCommand').value = s.command || 'SND';
+  $('selDoseUnit').value = s.doseUnit;
+  $('selMetric').value = s.metric;
+  $('chkHex').checked = Boolean(s.hexRaw);
+  $('inpPollSec').value = String(s.pollSec);
+
+  $('chkCalib').checked = Boolean(c.enabled);
+  $('inpA0').value = String(c.a0);
+  $('inpK1').value = String(c.k1);
+  $('inpK2').value = String(c.k2);
+  $('selCalMode').value = c.mode === 'table' ? 'table' : 'formula';
+
+  $('regexField').hidden = s.mode !== 'custom';
+}
+
+function bindSettings() {
+  const s = state.settings;
+
+  $('selBaud').addEventListener('change', (e) => { s.baudRate = Number(e.target.value); save(); });
+  $('selDataBits').addEventListener('change', (e) => { s.dataBits = Number(e.target.value); save(); });
+  $('selStopBits').addEventListener('change', (e) => { s.stopBits = Number(e.target.value); save(); });
+  $('selParity').addEventListener('change', (e) => { s.parity = e.target.value; save(); });
+  $('selFlow').addEventListener('change', (e) => { s.flowControl = e.target.value; save(); });
+
+  $('selMode').addEventListener('change', (e) => {
+    s.mode = e.target.value;
+    $('regexField').hidden = s.mode !== 'custom';
+    save();
+    updateTest();
+  });
+
+  $('inpRegex').addEventListener('input', (e) => { s.regex = e.target.value; save(); updateTest(); });
+  $('testLine').addEventListener('input', updateTest);
+
+  $('selLineEnding').addEventListener('change', (e) => { s.lineEnding = e.target.value; save(); });
+  $('inpCommand').addEventListener('input', (e) => { s.command = e.target.value; save(); });
+  $('selDoseUnit').addEventListener('change', (e) => { s.doseUnit = e.target.value; save(); refreshDerived(); updateCalTest(); });
+
+  $('selMetric').addEventListener('change', (e) => {
+    s.metric = e.target.value;
+    save();
+    renderChart();
+  });
+
+  $('chkHex').addEventListener('change', (e) => {
+    s.hexRaw = e.target.checked;
+    rawLog = '';
+    $('rawLog').textContent = '';
+    save();
+  });
+
+  $('inpPollSec').addEventListener('change', (e) => {
+    s.pollSec = num(e.target.value, 1);
+    save();
+    if (pollTimer) startPoll();
+  });
+}
+
+function bindCalibration() {
+  const c = state.calibration;
+
+  $('chkCalib').addEventListener('change', (e) => {
+    c.enabled = e.target.checked;
+    save();
+    refreshDerived();
+  });
+
+  $('selCalMode').addEventListener('change', (e) => {
+    c.mode = e.target.value === 'table' ? 'table' : 'formula';
+    save();
+    updateCalibrationUI();
+    refreshDerived();
+  });
+
+  $('btnImportCal').addEventListener('click', () => $('inpCalFile').click());
+  $('btnImportCalTop').addEventListener('click', () => $('inpCalFile').click());
+  $('inpCalTest').addEventListener('input', updateCalTest);
+  $('inpCalFile').addEventListener('change', (e) => {
+    const file = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (file) void importCalibration(file);
+  });
+  $('btnClearCal').addEventListener('click', () => {
+    if (!state.calibration.table.length) return;
+    if (!window.confirm('ล้างตารางสอบเทียบที่นำเข้าไว้?')) return;
+    state.calibration.table = [];
+    state.calibration.tableName = '';
+    save();
+    updateCalibrationUI();
+    refreshDerived();
+    toast('ล้างตารางสอบเทียบแล้ว');
+  });
+
+  $('inpA0').addEventListener('input', (e) => {
+    c.a0 = num(e.target.value, 0);
+    save();
+    refreshDerived();
+  });
+
+  $('inpK1').addEventListener('input', (e) => {
+    c.k1 = num(e.target.value, 0);
+    save();
+    refreshDerived();
+  });
+
+  $('inpK2').addEventListener('input', (e) => {
+    c.k2 = num(e.target.value, 0);
+    save();
+    refreshDerived();
+  });
+
+  $('btnSetA0').addEventListener('click', () => {
+    const r = lastReading();
+    if (!r) {
+      toast('ยังไม่มีค่าที่อ่านได้');
+      return;
+    }
+    const abs = toAbsorbance(r.value, r.unit);
+    if (abs === null) {
+      toast('ค่าล่าสุดแปลงเป็น absorbance ไม่ได้');
+      return;
+    }
+    c.a0 = abs;
+    $('inpA0').value = abs.toFixed(4);
+    save();
+    refreshDerived();
+    toast(`ตั้ง A₀ = ${abs.toFixed(4)}`);
+  });
+}
+
+function activateTab(name) {
+  document.querySelectorAll('.tab').forEach((tab) => {
+    const active = tab.dataset.tab === name;
+    tab.classList.toggle('is-active', active);
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('.tab-panel').forEach((panel) => {
+    panel.classList.toggle('is-active', panel.dataset.panel === name);
+  });
+
+  const energyMode = name === 'energy';
+  const title = $('chartTitle');
+  if (title) title.textContent = energyMode ? 'กราฟ depth–dose' : 'แนวโน้ม';
+  const metric = $('selMetric');
+  if (metric) metric.hidden = energyMode;
+
+  const readingsView = $('readingsView');
+  const energyView = $('energyView');
+  if (readingsView) readingsView.hidden = energyMode;
+  if (energyView) energyView.hidden = !energyMode;
+
+  const rightPane = document.querySelector('.col-right');
+  if (rightPane) rightPane.classList.toggle('energy-mode', energyMode);
+
+  const layout = document.querySelector('.layout');
+  if (layout) {
+    layout.classList.toggle('mode-reading', name === 'reading');
+    layout.classList.toggle('mode-solo', name === 'connect' || name === 'cal');
+  }
+
+  requestAnimationFrame(() => {
+    renderChart();
+    if (name === 'reading') {
+      scrollReadingsToLatest();
+      setTimeout(scrollReadingsToLatest, 60);
+    }
+  });
+}
+
+function bindTabs() {
+  document.querySelectorAll('.tab').forEach((tab) => {
+    tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+  });
+}
+
+function bindActions() {
+  bindTabs();
+  bindEnergy();
+  $('btnConnect').addEventListener('click', connectSerial);
+  $('btnDisconnect').addEventListener('click', disconnectSerial);
+  $('btnDemo').addEventListener('click', toggleDemo);
+  $('btnSend').addEventListener('click', sendCommand);
+  $('btnSndTop').addEventListener('click', readNow);
+  $('btnReportXlsx').addEventListener('click', exportExcel);
+  $('btnReportPdf').addEventListener('click', exportPdf);
+  $('btnCmdModel').addEventListener('click', () => sendPreset('MODEL'));
+  $('btnCmdRev').addEventListener('click', () => sendPreset('REV'));
+  $('btnCsv').addEventListener('click', exportCsv);
+  $('btnClear').addEventListener('click', clearAll);
+  $('btnPickPort').addEventListener('click', pickPort);
+  $('btnRefreshPorts').addEventListener('click', () => { refreshPorts(); });
+  $('selPort').addEventListener('change', (event) => {
+    selectedPortIndex = event.target.value === '' ? -1 : Number(event.target.value);
+    rememberPort();
+  });
+  $('btnClearRaw').addEventListener('click', () => {
+    rawLog = '';
+    $('rawLog').textContent = '';
+    ignoredLines = 0;
+    $('ignoredHits').textContent = 'บรรทัดที่แยกค่าไม่ได้: 0';
+  });
+
+  $('inpCommand').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      sendCommand();
+    }
+  });
+
+  $('chkPoll').addEventListener('change', (e) => {    if (e.target.checked) {
+      if (!session.port) {
+        toast('เชื่อมต่อพอร์ตก่อน');
+        e.target.checked = false;
+        return;
+      }
+      startPoll();
+    } else {
+      stopPoll();
+    }
+  });
+
+  $('rawDetails').addEventListener('toggle', () => {
+    if ($('rawDetails').open) queueRawRender();
+  });
+
+  $('modalOk').addEventListener('click', closeReadingPopup);
+  $('readingModal').addEventListener('click', (event) => {
+    if (event.target === $('readingModal')) closeReadingPopup();
+  });
+
+  document.addEventListener(
+    'keydown',
+    (event) => {
+      if (modalOpen) {
+        if (event.key === 'Enter' || event.key === 'Escape') {
+          event.preventDefault();
+          closeReadingPopup();
+        }
+        return;
+      }
+
+      // --- คีย์ลัด Ctrl + Shift ซ้าย (กดสองปุ่มนี้แล้วปล่อย) ---
+      if (event.key === 'Control') {
+        ctrlDown = true;
+        if (shiftLeftDown) armCtrlShift();
+        return;
+      }
+      if (event.key === 'Shift' && event.code === 'ShiftLeft') {
+        shiftLeftDown = true;
+        if (ctrlDown) armCtrlShift();
+        return;
+      }
+
+      // ปุ่มอื่นถูกกดระหว่างถือ Ctrl+Shift → ยกเลิก (กัน Ctrl+Shift+R ฯลฯ ไปสั่งอ่านค่า)
+      if (shiftPending) cancelCtrlShift();
+
+      // เผื่อไว้: Ctrl+Shift+ลูกศรซ้าย ก็ยังใช้ได้
+      const isLeftArrow = event.key === 'ArrowLeft' || event.code === 'ArrowLeft';
+      if (ctrlDown && shiftLeftDown && isLeftArrow) {
+        event.preventDefault();
+        event.stopPropagation();
+        fireShortcutRead();
+      }
+    },
+    true,
+  );
+
+  document.addEventListener(
+    'keyup',
+    (event) => {
+      if (event.key === 'Control') {
+        ctrlDown = false;
+        if (!shiftLeftDown) maybeFireCtrlShift();
+        return;
+      }
+      if (event.code === 'ShiftLeft') {
+        shiftLeftDown = false;
+        maybeFireCtrlShift();
+      }
+    },
+    true,
+  );
+
+  window.addEventListener('beforeunload', () => {
+    if (session.port) {
+      try {
+        session.disconnect();
+      } catch {
+        /* ignore */
+      }
+    }
+  });
+}
+
+function init() {
+  initModes();
+  restoreControls();
+  bindSettings();
+  bindCalibration();
+  bindActions();
+
+  if (!SerialSession.supported) {
+    $('btnConnect').disabled = true;
+    $('btnConnect').title = 'เบราว์เซอร์ไม่รองรับ Web Serial';
+    setStatus('error', 'เบราว์เซอร์ไม่รองรับ Web Serial');
+    toast('เปิดหน้านี้ด้วย Chrome/Edge บน localhost หรือ HTTPS เพื่อใช้พอร์ตอนุกรม');
+  } else {
+    setStatus('idle', 'ยังไม่เชื่อมต่อ');
+  }
+
+  setConnectedUI(false);
+  void initPorts();
+  updateCalibrationUI();
+  renderEnergyTable();
+  updateEnergyUI();
+
+  updateTest();
+  renderCurrent();
+  renderStats();
+  renderTable();
+  renderChart();
+
+  const ro = new ResizeObserver(() => {
+    requestAnimationFrame(renderChart);
+  });
+  ro.observe($('chart').parentElement);
+
+  if (state.readings.length) {
+    toast(`กู้คืนข้อมูลเดิม ${state.readings.length} รายการ`);
+  }
+}
+
+init();
+
+})();
+</script>
+</body>
+</html>
