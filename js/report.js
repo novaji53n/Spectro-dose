@@ -187,8 +187,10 @@ export function buildReportWorkbook(model, images = {}) {
       ['R²', num(e.fit.r2, 5)],
       ['หน่วยโดส', e.unit],
       [],
-      ['#', 'Depth (cm)', 'Ai', 'Dose'],
-      ...e.rows.map((row) => [row.no, row.depth, row.ai, num(row.dose, 3)]),
+      e.mode === 'dose' ? ['#', 'Depth (cm)', 'Dose'] : ['#', 'Depth (cm)', 'Ai', 'Dose'],
+      ...e.rows.map((row) =>
+        e.mode === 'dose' ? [row.no, row.depth, num(row.dose, 3)] : [row.no, row.depth, row.ai, num(row.dose, 3)],
+      ),
     ];
     energySheet = { name: 'Energy', rows: energyRows };
 
@@ -349,8 +351,8 @@ function buildEnergyBlock(energy, chartSrc) {
     metaItem('Dmax', energy.dmax === null ? '—' : `${energy.dmax.toFixed(3)} ${energy.unit}`),
     metaItem('R50 (cm)', energy.r50 === null ? '—' : energy.r50.toFixed(3)),
     metaItem('Rp (cm)', energy.rp === null ? '—' : energy.rp.toFixed(3)),
-    metaItem('Ea (MeV)', energy.ea === null ? '—' : energy.ea.toFixed(2)),
-    metaItem('Ep (MeV)', energy.ep === null ? '—' : energy.ep.toFixed(2)),
+    metaItem('Ea (MeV)', energy.ea === null ? '—' : energy.ea.toFixed(3)),
+    metaItem('Ep (MeV)', energy.ep === null ? '—' : energy.ep.toFixed(3)),
     metaItem('ช่วง fit', energy.fit.from === null ? '—' : `${energy.fit.from}–${energy.fit.to} (${energy.fit.auto ? 'อัตโนมัติ' : 'เลือกเอง'}) · ${energy.fit.n} จุด`),
     metaItem('slope / R²', `${energy.fit.slope === null ? '—' : energy.fit.slope.toFixed(4)} / ${energy.fit.r2 === null ? '—' : energy.fit.r2.toFixed(5)}`),
     metaItem('อุปกรณ์', 'Genesys 20 · 552 nm'),
@@ -370,7 +372,9 @@ function buildEnergyBlock(energy, chartSrc) {
   const table = el('table');
   const thead = el('thead');
   const headRow = el('tr');
-  for (const heading of ['#', 'Depth (cm)', 'Ai', `Dose (${energy.unit})`]) {
+  const doseMode = energy.mode === 'dose';
+  const headings = doseMode ? ['#', 'Depth (cm)', `Dose (${energy.unit})`] : ['#', 'Depth (cm)', 'Ai', `Dose (${energy.unit})`];
+  for (const heading of headings) {
     headRow.appendChild(el('th', null, heading));
   }
   thead.appendChild(headRow);
@@ -379,16 +383,126 @@ function buildEnergyBlock(energy, chartSrc) {
   const tbody = el('tbody');
   for (const row of energy.rows) {
     const tr = el('tr');
-    tr.append(
-      el('td', null, row.no),
-      el('td', null, row.depth === null ? '—' : Number(row.depth).toFixed(4)),
-      el('td', null, formatAbs(row.ai)),
-      el('td', null, formatDoseValue(row.dose)),
-    );
+    tr.append(el('td', null, row.no), el('td', null, row.depth === null ? '—' : Number(row.depth).toFixed(4)));
+    if (!doseMode) tr.appendChild(el('td', null, formatAbs(row.ai)));
+    tr.appendChild(el('td', null, formatDoseValue(row.dose)));
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
   section.appendChild(table);
 
   return section;
+}
+
+/* ------------------------------------------------------------------ */
+/* energy Excel form (Dose Conversion template)                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * สร้างสมุดงานฟอร์มวัดพลังงานแบบเดียวกับ energy test.xlsx
+ * - ชีต Dose Conversion: ตาราง Ai/Depth/Response/Dose(VLOOKUP)/Adjusted Dose + สูตรคำนวณพลังงาน
+ * - ชีต Dose Table: ตารางสอบเทียบ (Ai → Dose) ที่ฝังมาเพื่อให้ VLOOKUP ทำงานใน Excel
+ */
+export function buildEnergyFormWorkbook({
+  depths = [],
+  ais = [],
+  unit = 'kGy',
+  table = [],
+  fitFrom = 1,
+  fitTo = 1,
+  correction = 1,
+  ao = 0,
+  thickness = 0.018,
+}) {
+  const rows = [];
+  const push = (...cells) => {
+    rows.push(cells);
+    return rows.length;
+  };
+
+  const responses = table.map((point) => (Number(point.a) - ao) / thickness).filter((value) => Number.isFinite(value));
+  const minResponse = responses.length ? Math.min(...responses) : '';
+  const maxResponse = responses.length ? Math.max(...responses) : '';
+
+  // ---- หัวฟอร์ม (ตำแหน่งเดียวกับ energy test.xlsx) ----
+  push('DOSE CONVERSION SHEET — ENERGY');
+  push('', 'Correction Factor:', correction);
+  push('Dose Table = ตารางสอบเทียบที่นำเข้า (ใช้ช่วง A2:E ของชีต Dose Table ใน VLOOKUP)');
+  push('', 'Average Ao (Original Absorbance):', ao);
+  push('', 'Average Thickness (t):', thickness);
+  push('', 'Min Response:', minResponse);
+  push('', 'Max Response:', maxResponse);
+
+  const headerRow = push(
+    'Dosimeter ID',
+    'Depth in Al (cm)',
+    'Irradiated Absorbance (Ai)',
+    'Response (Ai - Ao) / t [ข้อมูลอ้างอิง]',
+    `Dose (${unit}) [VLOOKUP จาก Ai]`,
+    `Adjusted Dose (${unit})`,
+  );
+  push('← Enter Ai values in column C');
+
+  const first = rows.length + 1;
+  const tableLast = table.length + 1;
+
+  for (let i = 0; i < depths.length; i += 1) {
+    const r = first + i;
+    const ai = ais[i];
+    push(
+      i + 1,
+      depths[i] === null || depths[i] === undefined ? '' : Number(depths[i]),
+      ai === null || ai === undefined || ai === '' ? '' : Number(ai),
+      { f: `IF(C${r}="","",(C${r}-$C$4)/$C$5)` },
+      { f: `IF(C${r}="","",IFERROR(VLOOKUP(C${r},'Dose Table'!$A$2:$E$${tableLast},5,TRUE()),"Out of range"))` },
+      { f: `IF(E${r}="","",IFERROR(E${r}*$C$2,""))` },
+    );
+  }
+
+  const last = first + depths.length - 1;
+
+  // ---- สรุปผล (เหมือนตัวอย่าง: ป้ายคอลัมน์ A, ค่า C) ----
+  push();
+  const maxRow = push('Max Dose in Process:', '', { f: `IFERROR(MAX(E${first}:E${last}),"")` });
+  const d50Row = push('D50 (1/2 Max Dose):', '', { f: `IFERROR(C${maxRow}/2,"")` });
+  push();
+  push('ENERGY CALCULATION (from Extrapolated Range)');
+
+  const f1 = first + Math.max(0, fitFrom - 1);
+  const f2 = first + Math.max(0, fitTo - 1);
+
+  // แถวเดียวมี 2 ค่า: Slope (B) + Y-Intercept (D)
+  const slopeRow = push(
+    'Slope:',
+    { f: `IFERROR(SLOPE(F${f1}:F${f2},B${f1}:B${f2}),"")` },
+    'Y-Intercept:',
+    { f: `IFERROR(INTERCEPT(F${f1}:F${f2},B${f1}:B${f2}),"")` },
+  );
+
+  // R50 (B) + Rp (D)
+  const r50Row = push(
+    'R50:',
+    { f: `IFERROR((C${d50Row}-D${slopeRow})/B${slopeRow},"")` },
+    'Rp:',
+    { f: `IFERROR(-D${slopeRow}/B${slopeRow},"")` },
+  );
+
+  // Ea (B) + Ep (D)
+  push(
+    'Ea (MeV):',
+    { f: `IFERROR(0.99*6.2*B${r50Row},"")` },
+    'Ep (MeV):',
+    { f: `IFERROR(TEXT(0.99*5.09*D${r50Row}+0.2,"0.000"),"")` },
+  );
+
+  push();
+  push(`Fit rows: ${fitFrom}–${fitTo} (Dosimeter ID)`);
+
+  const tableRows = [['Absorbance (Ai)', '', '', '', `Dose (${unit})`]];
+  for (const point of table) tableRows.push([point.a, '', '', '', point.dose]);
+
+  return [
+    { name: 'Dose Conversion', rows },
+    { name: 'Dose Table', rows: tableRows },
+  ];
 }

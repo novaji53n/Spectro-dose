@@ -922,11 +922,39 @@ td.dose-cell strong { color: #0b5f58; }
 @media (min-width: 981px) {
   .layout.mode-solo { grid-template-columns: minmax(0, 1fr); }
   .layout.mode-solo .col-right { display: none; }
-  .layout.mode-solo .tab-panels { max-width: 980px; margin: 0 auto; width: 100%; }
+  .layout.mode-solo .tab-panels { max-width: none; margin: 0; width: 100%; }
 
   .layout.mode-reading { grid-template-columns: minmax(0, 1fr); }
   .layout.mode-reading .col-left { display: none; }
 }
+
+/* หน้าสอบเทียบ/เชื่อมต่อ: ใช้พื้นที่เต็มจอด้วยการ์ด 2 คอลัมน์ */
+@media (min-width: 1200px) {
+  .layout.mode-solo .tab-panel.is-active {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .layout.mode-solo .tab-panel.is-active > .card { min-width: 0; }
+  .layout.mode-solo .tab-panel.is-active > .card.wide { grid-column: 1 / -1; }
+}
+
+/* ---------- energy: dose-input mode ---------- */
+.paste-box {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px dashed #d0d5dd;
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+.paste-box summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.paste-box textarea { width: 100%; margin-top: 6px; box-sizing: border-box; font: inherit; font-size: 12px; border-radius: 8px; border: 1px solid var(--line); padding: 6px 8px; }
+.paste-box .inline { margin-top: 6px; }
+
+.energy-table.dose-mode thead th:nth-child(4),
+.energy-table.dose-mode tbody td:nth-child(4) { display: none; }
 </style>
 </head>
 <body>
@@ -946,7 +974,6 @@ td.dose-cell strong { color: #0b5f58; }
 
   <div class="actionbar">
     <button id="btnSndTop" class="btn primary" type="button" disabled title="อ่านค่า SND (คีย์ลัด Ctrl+Shift ซ้าย)">อ่านค่า (SND)</button>
-    <button id="btnImportCalTop" class="btn" type="button">นำเข้าตารางสอบเทียบ</button>
     <button id="btnReportXlsx" class="btn" type="button">รายงาน Excel</button>
     <button id="btnReportPdf" class="btn" type="button">รายงาน PDF</button>
     <span id="actionNote" class="action-note">เชื่อมต่อก่อนเพื่อกดอ่านค่า &middot; คีย์ลัด Ctrl+Shift (ซ้าย)</span>
@@ -1068,7 +1095,7 @@ td.dose-cell strong { color: #0b5f58; }
         </p>
       </section>
 
-      <section class="card">
+      <section class="card wide">
         <details id="rawDetails">
           <summary>ข้อมูลดิบจากพอร์ต (ใช้หา baud / รูปแบบ)</summary>
           <div class="inline">
@@ -1113,7 +1140,7 @@ td.dose-cell strong { color: #0b5f58; }
         <div class="cal-import">
           <div class="inline">
             <button id="btnImportCal" class="btn" type="button">นำเข้าตารางสอบเทียบ (Excel / CSV)</button>
-            <button id="btnClearCal" class="btn tiny danger" type="button">ล้างตาราง</button>
+            <button id="btnClearCal" class="btn tiny danger" type="button">ล้างตารางที่นำเข้า</button>
           </div>
           <input id="inpCalFile" type="file" accept=".xlsx,.xls,.csv,.txt" hidden />
           <p id="calTableInfo" class="hint">ยังไม่มีตาราง — นำเข้าไฟล์ Excel ที่มีคอลัมน์ Absorbance กับ Dose</p>
@@ -1173,26 +1200,101 @@ td.dose-cell strong { color: #0b5f58; }
         <p class="formula" id="calFormula">D = k<sub>1</sub>&middot;(A &minus; A<sub>0</sub>) + k<sub>2</sub>&middot;(A &minus; A<sub>0</sub>)<sup>2</sup></p>
         <button id="btnSetA0" class="btn subtle" type="button">ตั้ง A<sub>0</sub> = ค่าล่าสุด</button>
       </section>
+
+      <section class="card wide">
+        <h2>5 &middot; สร้างตารางสอบเทียบจากโดสมาตรฐาน</h2>
+        <p class="hint">ใส่ค่าโดสที่ทราบค่าแล้ว (dosimeter ที่ผ่านการฉายรังสี) แล้วอ่านค่า Absorbance ด้วย SND — โปรแกรมจะสร้างไฟล์ Excel ตารางสอบเทียบ (Absorbance, Dose) ให้</p>
+        <p class="hint"><b>ล็อก 16 ตัวอย่าง · โพลิโนเมียลดีกรี 10</b> — กด <b>“แนะนำ 16 ค่าโดส”</b> ให้ระบบเติมระดับโดสที่ควรใช้ ถ้าฉายรังสีให้ตรงค่าไม่ได้ให้ใช้ค่าใกล้เคียงที่วัดได้จริง</p>
+
+        <div class="inline">
+          <label class="field">
+            <span>หน่วยโดส</span>
+            <select id="selBuilderUnit">
+              <option value="kGy" selected>kGy</option>
+              <option value="Gy">Gy</option>
+              <option value="cGy">cGy</option>
+              <option value="mGy">mGy</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>ขยายตารางเป็น (จุด)</span>
+            <input id="inpBuilderDense" type="number" min="0" max="5000" step="1" value="881" />
+          </label>
+        </div>
+
+        <label class="switch">
+          <input id="chkBuilderAuto" type="checkbox" checked />
+          <span>เก็บค่า Absorbance อัตโนมัติเมื่ออ่านค่าขณะอยู่แท็บนี้</span>
+        </label>
+
+        <div class="inline">
+          <button id="btnBuilderSuggest" class="btn tiny" type="button">แนะนำ 16 ค่าโดส</button>
+          <button id="btnBuilderSample10" class="btn tiny" type="button">ดึง 16 จุดจากตารางที่นำเข้า</button>
+          <button id="btnBuilderClear" class="btn tiny danger" type="button">ล้าง 16 จุด</button>
+          <span id="builderProgress" class="muted">0/16</span>
+        </div>
+
+        <div class="table-wrap mini">
+          <table class="builder-table">
+            <thead>
+              <tr><th>#</th><th>Dose</th><th>Absorbance</th></tr>
+            </thead>
+            <tbody id="builderRows"></tbody>
+          </table>
+        </div>
+
+        <p id="builderNote" class="hint">&mdash;</p>
+
+        <div class="actions">
+          <button id="btnBuilderExport" class="btn" type="button">สร้างไฟล์ Excel สอบเทียบ</button>
+          <button id="btnBuilderUse" class="btn primary" type="button">ใช้เป็นตารางสอบเทียบ</button>
+        </div>
+      </section>
         </section>
 
         <section class="tab-panel" data-panel="energy" role="tabpanel">
       <section class="card">
-        <h2>5 &middot; วัดพลังงาน (อิเล็กตรอน)</h2>
+        <h2>6 &middot; วัดพลังงาน (อิเล็กตรอน)</h2>
         <p class="hint">อ่านค่าด้วย SND/Print ขณะอยู่แท็บนี้ — ค่า Ai จะเติมตามลำดับ 0.1812 → 5.6633 อัตโนมัติ</p>
         <p id="energyCalInfo" class="hint">ใช้ตารางสอบเทียบจากแท็บสอบเทียบ (A → Dose)</p>
 
+        <div class="grid-2">
+          <label class="field">
+            <span>ข้อมูลที่กรอก</span>
+            <select id="selEnergyInput">
+              <option value="abs" selected>Ai (absorbance) &rarr; แปลงเป็นโดส</option>
+              <option value="dose">Dose (kGy) โดยตรง</option>
+            </select>
+          </label>
+          <label class="field" id="energyUnitField" hidden>
+            <span>หน่วยโดส</span>
+            <select id="selEnergyDoseUnit">
+              <option value="kGy" selected>kGy</option>
+              <option value="Gy">Gy</option>
+              <option value="cGy">cGy</option>
+              <option value="mGy">mGy</option>
+            </select>
+          </label>
+        </div>
+
+
+
         <div class="sim-box">
           <label class="field sim-field">
-            <span>โหมดจำลอง — พลังงาน (MeV)</span>
-            <input id="inpSimEnergy" type="number" step="0.1" min="1" value="10" inputmode="decimal" />
+            <span>โหมดจำลอง — พลังงาน Ea (MeV)</span>
+            <input id="inpSimEnergy" type="number" step="0.1" min="1" value="19.2" inputmode="decimal" />
+          </label>
+          <label class="field sim-field">
+            <span>Dmax (kGy)</span>
+            <input id="inpSimPeak" type="number" step="1" min="1" value="31" inputmode="decimal" />
           </label>
           <button id="btnSimRun" class="btn primary" type="button">ตกลง / จำลอง</button>
         </div>
-        <p class="hint">จำลอง depth–dose แบบ PDD ตามพลังงานที่ใส่ แล้วเติม Ai ให้ทั้ง 60 แถว (ใช้ตารางสอบเทียบจากแท็บสอบเทียบ)</p>
+        <p class="hint">จำลอง depth–dose ตามพลังงานและ Dmax ที่ตั้ง (เริ่มต้น 31 kGy) แล้วเติมค่าลงตาราง 60 แถว — โหมด Dose ได้ค่าโดส (kGy) โดยตรง, โหมด Ai แปลงผ่านตารางสอบเทียบ</p>
 
         <label class="switch">
           <input id="chkEnergyAutoFit" type="checkbox" checked />
-          <span>เลือกช่วงอัตโนมัติ (R² ใกล้ 1 ที่สุด)</span>
+          <span>เลือกช่วงอัตโนมัติ (R² ดีที่สุด · 5–14 จุด)</span>
         </label>
         <p class="hint">หรือเลือกเองโดย <b>คลิกที่แถว</b> ในตาราง: คลิกแรก = จุดเริ่ม, คลิกที่สอง = จุดสิ้นสุด (หรือพิมพ์เลขแถวด้านล่าง) — ระบบจะแสดง R² ของช่วงที่เลือก</p>
         <div class="grid-2" id="energyFitFields">
@@ -1205,6 +1307,7 @@ td.dose-cell strong { color: #0b5f58; }
             <input id="inpEnergyFitTo" type="number" min="1" step="1" value="2" />
           </label>
         </div>
+        <p class="hint">ถ้าต้องการผลตรงกับ Excel ให้เลือกช่วงแถวเดียวกับที่ใช้ใน Excel (ไฟล์ตัวอย่างใช้แถว 27–40)</p>
         <p id="energyR2" class="energy-r2">R² = —</p>
 
         <div class="inline energy-actions">
@@ -1299,6 +1402,7 @@ td.dose-cell strong { color: #0b5f58; }
             <h2>ตารางวัดพลังงาน <span class="badge">Depth &middot; Ai &middot; Dose</span></h2>
             <div class="actions">
               <span class="muted">คลิกแถวเพื่อเลือกช่วง fit</span>
+              <button id="btnEnergyForm" class="btn tiny" type="button">ส่งออก Excel ฟอร์ม</button>
               <button id="btnEnergyCsv" class="btn tiny" type="button">ส่งออก CSV</button>
             </div>
           </div>
@@ -2136,6 +2240,12 @@ function sheetXml(rows, hasDrawing) {
         .map((value, colIdx) => {
           if (value === null || value === undefined || value === '') return '';
           const ref = `${colName(colIdx)}${rowIndex + 1}`;
+          if (value && typeof value === 'object' && typeof value.f === 'string') {
+            const cached = value.v;
+            const cachedTag =
+              cached === undefined || cached === null || cached === '' ? '' : `<v>${escapeXml(String(cached))}</v>`;
+            return `<c r="${ref}"><f>${escapeXml(value.f)}</f>${cachedTag}</c>`;
+          }
           if (typeof value === 'number' && Number.isFinite(value)) {
             return `<c r="${ref}"><v>${value}</v></c>`;
           }
@@ -2263,7 +2373,7 @@ function buildXlsx(sheets, options = {}) {
     list
       .map((sheet, i) => `<sheet name="${escapeXml((sheet.name || `Sheet${i + 1}`).slice(0, 31))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`)
       .join('') +
-    '</sheets></workbook>';
+    '</sheets><calcPr calcId="0" fullCalcOnLoad="1"/></workbook>';
 
   files.push({ name: '[Content_Types].xml', data: enc.encode(contentTypes) });
   files.push({ name: '_rels/.rels', data: enc.encode(rootRels) });
@@ -2760,9 +2870,15 @@ function rSquared(points, fit) {
 }
 
 const MIN_FIT_POINTS = 5;
-const MAX_FIT_POINTS = 7;
+const MAX_FIT_POINTS = 14;
+const R2_GOOD_ENOUGH = 0.999;
 
-/** เลือกช่วง fit อัตโนมัติ: เลื่อนหน้าต่าง 5–7 จุดหลัง Dmax แล้วเลือกช่วงที่ R² สูงสุด */
+/**
+ * เลือกช่วง fit อัตโนมัติ:
+ * - ไล่หน้าต่าง 5–14 จุดหลัง Dmax แล้วหา R² ที่ดีที่สุดของแต่ละขนาด
+ * - ถ้ามีขนาดที่ R² ≥ 0.999 ให้ใช้หน้าต่างที่ "ใหญ่ที่สุด" (จุดมากที่สุด) เพื่อความเสถียร
+ * - ถ้าไม่มี ให้ใช้ R² สูงสุดตามเดิม
+ */
 function autoFitRange(rows, dmax, criterion = 'r2') {
   const valid = rows.filter((row) => row.adjusted !== null && row.depth !== null && row.adjusted !== undefined);
   if (valid.length < MIN_FIT_POINTS + 1 || !Number.isFinite(dmax) || dmax <= 0) return null;
@@ -2775,43 +2891,45 @@ function autoFitRange(rows, dmax, criterion = 'r2') {
   const tail = valid.slice(maxIndex + 1);
   if (tail.length < MIN_FIT_POINTS) return null;
 
-  const candidates = [];
-
-  for (const size of [MAX_FIT_POINTS, MAX_FIT_POINTS - 1, MIN_FIT_POINTS]) {
-    if (size > tail.length) continue;
+  const perSize = [];
+  for (let size = Math.min(MAX_FIT_POINTS, tail.length); size >= MIN_FIT_POINTS; size -= 1) {
+    let best = null;
     for (let start = 0; start + size <= tail.length; start += 1) {
       const window = tail.slice(start, start + size);
       const points = window.map((row) => ({ x: row.depth, y: row.adjusted }));
       const fit = linearFit(points);
       if (!fit || !(fit.slope < 0)) continue;
-      candidates.push({
-        from: window[0].index,
-        to: window[window.length - 1].index,
-        fit,
-        r2: rSquared(points, fit),
-        points: size,
-      });
+      const r2 = rSquared(points, fit);
+      if (!best || r2 > best.r2 + 1e-12) {
+        best = {
+          from: window[0].index,
+          to: window[window.length - 1].index,
+          fit,
+          r2,
+          points: size,
+        };
+      }
     }
+    if (best) perSize.push(best);
   }
 
-  if (candidates.length === 0) return null;
+  if (perSize.length === 0) return null;
 
-  let best = candidates[0];
-  for (const candidate of candidates) {
-    if (criterion === 'slope1') {
+  let best = perSize.reduce((a, b) => (b.r2 > a.r2 ? b : a));
+
+  if (criterion === 'slope1') {
+    for (const candidate of perSize) {
       const distance = Math.abs(Math.abs(candidate.fit.slope) - 1);
       const bestDistance = Math.abs(Math.abs(best.fit.slope) - 1);
       if (distance < bestDistance - 1e-12 || (Math.abs(distance - bestDistance) < 1e-12 && candidate.r2 > best.r2)) {
         best = candidate;
       }
-    } else if (candidate.r2 > best.r2 + 1e-12) {
-      best = candidate;
-    } else if (Math.abs(candidate.r2 - best.r2) < 1e-12) {
-      // R² เท่ากัน: ใช้จำนวนจุดมากกว่า และเลือกช่วงที่ชันกว่า
-      if (candidate.points > best.points || (candidate.points === best.points && Math.abs(candidate.fit.slope) > Math.abs(best.fit.slope))) {
-        best = candidate;
-      }
     }
+  } else {
+    const good = perSize
+      .filter((candidate) => candidate.r2 >= R2_GOOD_ENOUGH)
+      .sort((a, b) => b.points - a.points || b.r2 - a.r2);
+    if (good.length > 0) best = good[0];
   }
 
   return { from: best.from, to: best.to, r2: best.r2, slope: best.fit.slope, criterion, points: best.points };
@@ -2848,58 +2966,103 @@ function doseToResponse(dose, table) {
   return last.a;
 }
 
-/**
- * จำลอง depth–dose แบบเปอร์เซ็นต์ depth dose (PDD) ของลำอิเล็กตรอน
- * แล้วแปลงกลับเป็นค่า Ai ผ่านตาราง Dose (Response → Dose)
- */
-function simulateDepthDose({ energy, depths, table, ao = 0, thickness = 0.018 }) {
+function buildEnergyCurve(energy, rpRatio = 1.335) {
   const e = Number(energy);
   if (!Number.isFinite(e) || e <= 0.5) throw new Error('พลังงานต้องมากกว่า 0.5 MeV');
-  if (!Array.isArray(table) || table.length < 2) throw new Error('ต้องมีตาราง Dose (Response → Dose) ก่อน');
-  if (!Array.isArray(depths) || depths.length === 0) throw new Error('ไม่มีระยะลึกให้จำลอง');
 
   const r50 = e / (0.99 * 6.2);
-  const rp = (e - 0.2) / (0.99 * 5.09);
+  // ใช้สัดส่วน Rp/R50 แบบเดียวกับไฟล์ตัวอย่าง energy test.xlsx (Rp 4.176 / R50 3.128)
+  const rp = r50 * (Number(rpRatio) > 1 ? Number(rpRatio) : 1.335);
   if (!(rp > r50 + 1e-6)) throw new Error('พลังงานต่ำเกินไปสำหรับสูตรนี้');
 
   const slope = -0.5 / (rp - r50);
   const intercept = -slope * rp;
   const zmax = rp + 1 / slope;
+  return { e, r50, rp, slope, intercept, zmax };
+}
 
+function relativeDoseAt(curve, depth, index) {
+  let relative;
+  if (depth <= curve.zmax) {
+    const t = curve.zmax > 0 ? depth / curve.zmax : 1;
+    relative = 0.85 + 0.15 * t * t; // buildup จาก surface dose 85% ไปถึง 100% ที่ zmax
+  } else {
+    relative = 1 + curve.slope * (depth - curve.zmax); // ส่วนลดลงแบบเส้นตรง (tangent)
+  }
+  if (relative < 0.01) relative = 0.01;
+
+  const ripple = 1 + 0.002 * Math.sin(index * 1.7); // ripple เล็กน้อยให้เหมือนข้อมูลวัดจริง
+  return Math.max(0, relative * ripple);
+}
+
+/**
+ * จำลอง depth–dose แบบเปอร์เซ็นต์ depth dose (PDD) ของลำอิเล็กตรอน
+ * แล้วแปลงกลับเป็นค่า Ai ผ่านตาราง Dose (Response → Dose)
+ */
+function simulateDepthDose({ energy, depths, table, ao = 0, thickness = 0.018, peakDose = 31 }) {
+  if (!Array.isArray(table) || table.length < 2) throw new Error('ต้องมีตาราง Dose (Response → Dose) ก่อน');
+  if (!Array.isArray(depths) || depths.length === 0) throw new Error('ไม่มีระยะลึกให้จำลอง');
+
+  const curve = buildEnergyCurve(energy);
   const maxTableDose = table.reduce((max, point) => (point.dose > max ? point.dose : max), 0);
-  const peakDose = maxTableDose * 0.92;
+
+  // ใช้ Dmax ที่สมจริง (ค่าเริ่มต้น 31 kGy) แต่ไม่เกินขอบเขตตารางสอบเทียบ
+  const requested = Number(peakDose) > 0 ? Number(peakDose) : 31;
+  const peak = Math.min(requested, maxTableDose * 0.98);
 
   const rows = depths.map((rawDepth, index) => {
     const depth = Number(rawDepth);
-    let relative;
-    if (depth <= zmax) {
-      const t = zmax > 0 ? depth / zmax : 1;
-      relative = 0.85 + 0.15 * t * t; // buildup จาก surface dose 85% ไปถึง 100% ที่ zmax
-    } else {
-      relative = 1 + slope * (depth - zmax); // ส่วนลดลงแบบเส้นตรง (tangent)
-    }
-    if (relative < 0.01) relative = 0.01;
-
-    const ripple = 1 + 0.002 * Math.sin(index * 1.7); // ripple เล็กน้อยให้เหมือนข้อมูลวัดจริง
-    const dose = Math.max(0, relative * peakDose * ripple);
+    const dose = relativeDoseAt(curve, depth, index) * peak;
     const response = doseToResponse(dose, table);
     const ai = response === null ? null : Number((response * thickness + ao).toFixed(4));
-
     return { depth: Number.isFinite(depth) ? depth : null, ai };
   });
 
-  return { rows, r50, rp, zmax, peakDose, slope, intercept };
+  return { rows, ...curve, peakDose: peak };
+}
+
+/**
+ * จำลองเส้น depth–dose แล้วคืน "ค่าโดส" โดยตรง (ใช้กับโหมดกรอกโดส)
+ * ค่าที่ได้มีรูปทรงเหมือนตัวอย่าง Excel: ขึ้นถึง Dmax แล้วลดลงตาม tangent
+ */
+function simulateDoseCurve({ energy, depths, peakDose = 31 }) {
+  if (!Array.isArray(depths) || depths.length === 0) throw new Error('ไม่มีระยะลึกให้จำลอง');
+
+  const curve = buildEnergyCurve(energy);
+  const peak = Number(peakDose) > 0 ? Number(peakDose) : 31;
+
+  const raw = depths.map((rawDepth, index) => {
+    const depth = Number(rawDepth);
+    return { depth: Number.isFinite(depth) ? depth : null, dose: relativeDoseAt(curve, depth, index) * peak };
+  });
+
+  // ปรับสเกลให้ค่าสูงสุดที่สุ่มได้ = peakDose (Dmax ตรงกับที่ตั้งไว้)
+  const maxRaw = raw.reduce((max, row) => (row.dose > max ? row.dose : max), 0);
+  const scale = maxRaw > 0 ? peak / maxRaw : 1;
+
+  const rows = raw.map((row) => ({
+    depth: row.depth,
+    dose: Number((row.dose * scale).toFixed(3)),
+    ai: null,
+  }));
+
+  return { rows, ...curve, peakDose: peak };
 }
 function computeEnergy({ rows = [], ao = 0, thickness = 0.018, correction = 1, table = [], autoFit = true, fitFrom = 1, fitTo = 1, criterion = 'r2' }) {
   const prepared = rows.map((row, index) => {
     const depth = row && row.depth !== null && row.depth !== '' ? Number(row.depth) : NaN;
     const ai = row && row.ai !== null && row.ai !== '' ? Number(row.ai) : NaN;
+    const directDose = row && row.dose !== null && row.dose !== undefined && row.dose !== '' ? Number(row.dose) : NaN;
 
     let response = null;
     let dose = null;
     let adjusted = null;
 
-    if (Number.isFinite(ai) && thickness > 0) {
+    if (Number.isFinite(directDose)) {
+      // กรอกโดสโดยตรง (kGy) ไม่ต้องผ่านตารางสอบเทียบ
+      dose = directDose;
+      adjusted = dose * correction;
+    } else if (Number.isFinite(ai) && thickness > 0) {
       response = (ai - ao) / thickness;
       if (table.length > 0) {
         dose = doseFromPoints(response, table);
@@ -2914,6 +3077,7 @@ function computeEnergy({ rows = [], ao = 0, thickness = 0.018, correction = 1, t
       response,
       dose,
       adjusted,
+      direct: Number.isFinite(directDose),
     };
   });
 
@@ -2947,7 +3111,9 @@ function computeEnergy({ rows = [], ao = 0, thickness = 0.018, correction = 1, t
   let error = '';
   let warning = '';
 
-  if (table.length === 0) {
+  const hasDirectDose = prepared.some((row) => row.direct);
+
+  if (table.length === 0 && !hasDirectDose) {
     error = 'ยังไม่มีตารางสอบเทียบ (A → Dose) — นำเข้าที่แท็บสอบเทียบก่อน';
   } else if (dmax === null) {
     error = 'ยังไม่มีข้อมูลที่คำนวณโดสได้';
@@ -3174,8 +3340,10 @@ function buildReportWorkbook(model, images = {}) {
       ['R²', num(e.fit.r2, 5)],
       ['หน่วยโดส', e.unit],
       [],
-      ['#', 'Depth (cm)', 'Ai', 'Dose'],
-      ...e.rows.map((row) => [row.no, row.depth, row.ai, num(row.dose, 3)]),
+      e.mode === 'dose' ? ['#', 'Depth (cm)', 'Dose'] : ['#', 'Depth (cm)', 'Ai', 'Dose'],
+      ...e.rows.map((row) =>
+        e.mode === 'dose' ? [row.no, row.depth, num(row.dose, 3)] : [row.no, row.depth, row.ai, num(row.dose, 3)],
+      ),
     ];
     energySheet = { name: 'Energy', rows: energyRows };
 
@@ -3335,8 +3503,8 @@ function buildEnergyBlock(energy, chartSrc) {
     metaItem('Dmax', energy.dmax === null ? '—' : `${energy.dmax.toFixed(3)} ${energy.unit}`),
     metaItem('R50 (cm)', energy.r50 === null ? '—' : energy.r50.toFixed(3)),
     metaItem('Rp (cm)', energy.rp === null ? '—' : energy.rp.toFixed(3)),
-    metaItem('Ea (MeV)', energy.ea === null ? '—' : energy.ea.toFixed(2)),
-    metaItem('Ep (MeV)', energy.ep === null ? '—' : energy.ep.toFixed(2)),
+    metaItem('Ea (MeV)', energy.ea === null ? '—' : energy.ea.toFixed(3)),
+    metaItem('Ep (MeV)', energy.ep === null ? '—' : energy.ep.toFixed(3)),
     metaItem('ช่วง fit', energy.fit.from === null ? '—' : `${energy.fit.from}–${energy.fit.to} (${energy.fit.auto ? 'อัตโนมัติ' : 'เลือกเอง'}) · ${energy.fit.n} จุด`),
     metaItem('slope / R²', `${energy.fit.slope === null ? '—' : energy.fit.slope.toFixed(4)} / ${energy.fit.r2 === null ? '—' : energy.fit.r2.toFixed(5)}`),
     metaItem('อุปกรณ์', 'Genesys 20 · 552 nm'),
@@ -3356,7 +3524,9 @@ function buildEnergyBlock(energy, chartSrc) {
   const table = el('table');
   const thead = el('thead');
   const headRow = el('tr');
-  for (const heading of ['#', 'Depth (cm)', 'Ai', `Dose (${energy.unit})`]) {
+  const doseMode = energy.mode === 'dose';
+  const headings = doseMode ? ['#', 'Depth (cm)', `Dose (${energy.unit})`] : ['#', 'Depth (cm)', 'Ai', `Dose (${energy.unit})`];
+  for (const heading of headings) {
     headRow.appendChild(el('th', null, heading));
   }
   thead.appendChild(headRow);
@@ -3365,18 +3535,128 @@ function buildEnergyBlock(energy, chartSrc) {
   const tbody = el('tbody');
   for (const row of energy.rows) {
     const tr = el('tr');
-    tr.append(
-      el('td', null, row.no),
-      el('td', null, row.depth === null ? '—' : Number(row.depth).toFixed(4)),
-      el('td', null, formatAbs(row.ai)),
-      el('td', null, formatDoseValue(row.dose)),
-    );
+    tr.append(el('td', null, row.no), el('td', null, row.depth === null ? '—' : Number(row.depth).toFixed(4)));
+    if (!doseMode) tr.appendChild(el('td', null, formatAbs(row.ai)));
+    tr.appendChild(el('td', null, formatDoseValue(row.dose)));
     tbody.appendChild(tr);
   }
   table.appendChild(tbody);
   section.appendChild(table);
 
   return section;
+}
+
+/* ------------------------------------------------------------------ */
+/* energy Excel form (Dose Conversion template)                        */
+/* ------------------------------------------------------------------ */
+
+/**
+ * สร้างสมุดงานฟอร์มวัดพลังงานแบบเดียวกับ energy test.xlsx
+ * - ชีต Dose Conversion: ตาราง Ai/Depth/Response/Dose(VLOOKUP)/Adjusted Dose + สูตรคำนวณพลังงาน
+ * - ชีต Dose Table: ตารางสอบเทียบ (Ai → Dose) ที่ฝังมาเพื่อให้ VLOOKUP ทำงานใน Excel
+ */
+function buildEnergyFormWorkbook({
+  depths = [],
+  ais = [],
+  unit = 'kGy',
+  table = [],
+  fitFrom = 1,
+  fitTo = 1,
+  correction = 1,
+  ao = 0,
+  thickness = 0.018,
+}) {
+  const rows = [];
+  const push = (...cells) => {
+    rows.push(cells);
+    return rows.length;
+  };
+
+  const responses = table.map((point) => (Number(point.a) - ao) / thickness).filter((value) => Number.isFinite(value));
+  const minResponse = responses.length ? Math.min(...responses) : '';
+  const maxResponse = responses.length ? Math.max(...responses) : '';
+
+  // ---- หัวฟอร์ม (ตำแหน่งเดียวกับ energy test.xlsx) ----
+  push('DOSE CONVERSION SHEET — ENERGY');
+  push('', 'Correction Factor:', correction);
+  push('Dose Table = ตารางสอบเทียบที่นำเข้า (ใช้ช่วง A2:E ของชีต Dose Table ใน VLOOKUP)');
+  push('', 'Average Ao (Original Absorbance):', ao);
+  push('', 'Average Thickness (t):', thickness);
+  push('', 'Min Response:', minResponse);
+  push('', 'Max Response:', maxResponse);
+
+  const headerRow = push(
+    'Dosimeter ID',
+    'Depth in Al (cm)',
+    'Irradiated Absorbance (Ai)',
+    'Response (Ai - Ao) / t [ข้อมูลอ้างอิง]',
+    `Dose (${unit}) [VLOOKUP จาก Ai]`,
+    `Adjusted Dose (${unit})`,
+  );
+  push('← Enter Ai values in column C');
+
+  const first = rows.length + 1;
+  const tableLast = table.length + 1;
+
+  for (let i = 0; i < depths.length; i += 1) {
+    const r = first + i;
+    const ai = ais[i];
+    push(
+      i + 1,
+      depths[i] === null || depths[i] === undefined ? '' : Number(depths[i]),
+      ai === null || ai === undefined || ai === '' ? '' : Number(ai),
+      { f: `IF(C${r}="","",(C${r}-$C$4)/$C$5)` },
+      { f: `IF(C${r}="","",IFERROR(VLOOKUP(C${r},'Dose Table'!$A$2:$E${tableLast},5,TRUE()),"Out of range"))` },
+      { f: `IF(E${r}="","",IFERROR(E${r}*$C$2,""))` },
+    );
+  }
+
+  const last = first + depths.length - 1;
+
+  // ---- สรุปผล (เหมือนตัวอย่าง: ป้ายคอลัมน์ A, ค่า C) ----
+  push();
+  const maxRow = push('Max Dose in Process:', '', { f: `IFERROR(MAX(E${first}:E${last}),"")` });
+  const d50Row = push('D50 (1/2 Max Dose):', '', { f: `IFERROR(C${maxRow}/2,"")` });
+  push();
+  push('ENERGY CALCULATION (from Extrapolated Range)');
+
+  const f1 = first + Math.max(0, fitFrom - 1);
+  const f2 = first + Math.max(0, fitTo - 1);
+
+  // แถวเดียวมี 2 ค่า: Slope (B) + Y-Intercept (D)
+  const slopeRow = push(
+    'Slope:',
+    { f: `IFERROR(SLOPE(F${f1}:F${f2},B${f1}:B${f2}),"")` },
+    'Y-Intercept:',
+    { f: `IFERROR(INTERCEPT(F${f1}:F${f2},B${f1}:B${f2}),"")` },
+  );
+
+  // R50 (B) + Rp (D)
+  const r50Row = push(
+    'R50:',
+    { f: `IFERROR((C${d50Row}-D${slopeRow})/B${slopeRow},"")` },
+    'Rp:',
+    { f: `IFERROR(-D${slopeRow}/B${slopeRow},"")` },
+  );
+
+  // Ea (B) + Ep (D)
+  push(
+    'Ea (MeV):',
+    { f: `IFERROR(0.99*6.2*B${r50Row},"")` },
+    'Ep (MeV):',
+    { f: `IFERROR(TEXT(0.99*5.09*D${r50Row}+0.2,"0.000"),"")` },
+  );
+
+  push();
+  push(`Fit rows: ${fitFrom}–${fitTo} (Dosimeter ID)`);
+
+  const tableRows = [['Absorbance (Ai)', '', '', '', `Dose (${unit})`]];
+  for (const point of table) tableRows.push([point.a, '', '', '', point.dose]);
+
+  return [
+    { name: 'Dose Conversion', rows },
+    { name: 'Dose Table', rows: tableRows },
+  ];
 }
 
 /* ===== js/app.js ===== */
@@ -3411,8 +3691,18 @@ function defaultState() {
       lastPid: null,
     },
     calibration: { enabled: false, mode: 'formula', a0: 0, k1: 1, k2: 0, table: [], tableName: '' },
+    builder: {
+      rows: Array.from({ length: 16 }, () => ({ dose: null, ai: null })),
+      points: 16,
+      degree: 10,
+      autoCapture: true,
+      unit: 'kGy',
+      dense: 881,
+    },
     energy: {
       autoFit: true,
+      inputMode: 'abs',
+      unit: 'kGy',
       fitFrom: 15,
       fitTo: 21,
       rows: createStandardRows(),
@@ -3437,11 +3727,17 @@ function loadState() {
       );
       if (!hasData) energy.rows = createStandardRows();
     }
+    const builder = { ...base.builder, ...(saved.builder || {}) };
+    const savedRows = Array.isArray(builder.rows) ? builder.rows : [];
+    builder.points = 16;
+    builder.rows = Array.from({ length: 16 }, (_, index) => savedRows[index] || { dose: null, ai: null });
+
     return {
       ...base,
       ...saved,
       settings: { ...base.settings, ...(saved.settings || {}) },
       calibration: { ...base.calibration, ...(saved.calibration || {}) },
+      builder,
       energy,
       readings: Array.isArray(saved.readings) ? saved.readings.slice(-MAX_READINGS) : [],
     };
@@ -3962,6 +4258,7 @@ function handleLine(line) {
   renderChart();
 
   autoCaptureEnergyReading(reading);
+  autoCaptureBuilderReading(reading);
 
   if (sndPending) {
     sndPending = false;
@@ -4142,7 +4439,7 @@ function renderChart() {
         lastEnergyResult.r50 !== null && lastEnergyResult.dmax !== null
           ? { r50: lastEnergyResult.r50, rp: lastEnergyResult.rp, dmax: lastEnergyResult.dmax }
           : null,
-      unit: state.settings.doseUnit,
+      unit: energyUnit(),
     });
     return;
   }
@@ -4308,32 +4605,37 @@ function exportCsv() {
 
 function exportEnergyCsv() {
   const result = lastEnergyResult;
-  const filled = result ? result.rows.filter((row) => row.ai !== null && row.ai !== '') : [];
+  const filled = result ? result.rows.filter((row) => row.adjusted !== null) : [];
   if (!result || filled.length === 0) {
     toast('ยังไม่มีข้อมูลวัดพลังงานให้ส่งออก');
     return;
   }
 
-  const unit = state.settings.doseUnit || 'kGy';
+  const doseMode = state.energy.inputMode === 'dose';
+  const unit = energyUnit();
   const num = (value, digits = 3) => (value === null || value === undefined ? '' : Number(value).toFixed(digits));
 
   const lines = [
     ['# Spectro Dose Reader — วัดพลังงาน (อิเล็กตรอน)'],
-    ['# Ea (MeV)', num(result.ea, 2)],
-    ['# Ep (MeV)', num(result.ep, 2)],
+    ['# Ea (MeV)', num(result.ea, 3)],
+    ['# Ep (MeV)', num(result.ep, 3)],
     [`# Dmax (${unit})`, num(result.dmax, 3)],
     ['# R50 (cm)', num(result.r50, 3)],
     ['# Rp (cm)', num(result.rp, 3)],
     ['# ช่วง fit', result.range ? `${result.range.from}–${result.range.to}` : ''],
     ['# R²', num(result.r2, 5)],
     [],
-    ['#', 'Depth (cm)', 'Ai', `Dose (${unit})`],
-    ...result.rows.map((row, index) => [
-      index + 1,
-      row.depth === null ? '' : row.depth,
-      row.ai === null || row.ai === '' ? '' : row.ai,
-      row.adjusted === null ? '' : Number(row.adjusted.toFixed(3)),
-    ]),
+    doseMode ? ['#', 'Depth (cm)', `Dose (${unit})`] : ['#', 'Depth (cm)', 'Ai', `Dose (${unit})`],
+    ...result.rows.map((row, index) =>
+      doseMode
+        ? [index + 1, row.depth === null ? '' : row.depth, row.adjusted === null ? '' : Number(row.adjusted.toFixed(3))]
+        : [
+            index + 1,
+            row.depth === null ? '' : row.depth,
+            row.ai === null || row.ai === '' ? '' : row.ai,
+            row.adjusted === null ? '' : Number(row.adjusted.toFixed(3)),
+          ],
+    ),
   ];
 
   const csv = lines.map((cols) => cols.map(csvCell).join(',')).join('\r\n');
@@ -4365,6 +4667,14 @@ function clearAll() {
 function updateCalibrationUI() {
   const cal = state.calibration;
   const isTable = cal.mode === 'table';
+
+  const enabledEl = $('chkCalib');
+  if (enabledEl) enabledEl.checked = Boolean(cal.enabled);
+  const modeEl = $('selCalMode');
+  if (modeEl) modeEl.value = isTable ? 'table' : 'formula';
+  const unitEl = $('selDoseUnit');
+  if (unitEl) unitEl.value = state.settings.doseUnit || 'Gy';
+
   $('formulaFields').hidden = isTable;
   $('a0Field').hidden = isTable;
   $('btnSetA0').hidden = isTable;
@@ -4504,6 +4814,8 @@ function renderEnergyTable() {
   const body = $('energyRows');
   body.replaceChildren();
 
+  const doseMode = state.energy.inputMode === 'dose';
+
   state.energy.rows.forEach((row, index) => {
     const tr = document.createElement('tr');
 
@@ -4524,25 +4836,33 @@ function renderEnergyTable() {
     });
     tdDepth.appendChild(depth);
 
-    const tdAi = document.createElement('td');
-    const ai = document.createElement('input');
-    ai.type = 'number';
-    ai.step = '0.0001';
-    ai.inputMode = 'decimal';
-    ai.placeholder = '—';
-    ai.value = row.ai === null || row.ai === undefined ? '' : String(row.ai);
-    ai.addEventListener('input', () => {
-      row.ai = ai.value === '' ? null : Number(ai.value);
+    const tdValue = document.createElement('td');
+    const value = document.createElement('input');
+    value.type = 'number';
+    value.step = '0.0001';
+    value.inputMode = 'decimal';
+    value.placeholder = doseMode ? 'kGy' : 'A';
+    value.value = doseMode
+      ? row.dose === null || row.dose === undefined
+        ? ''
+        : String(row.dose)
+      : row.ai === null || row.ai === undefined
+        ? ''
+        : String(row.ai);
+    value.addEventListener('input', () => {
+      const parsed = value.value === '' ? null : Number(value.value);
+      if (doseMode) row.dose = parsed;
+      else row.ai = parsed;
       save();
       computeEnergyUI();
     });
-    tdAi.appendChild(ai);
+    tdValue.appendChild(value);
 
     const tdDose = document.createElement('td');
     tdDose.className = 'dose-cell';
     tdDose.textContent = '—';
 
-    tr.append(tdNo, tdDepth, tdAi, tdDose);
+    tr.append(tdNo, tdDepth, tdValue, tdDose);
 
     tr.addEventListener('click', (event) => {
       const target = event.target;
@@ -4579,6 +4899,10 @@ function selectEnergyRow(rowNumber) {
   computeEnergyUI();
 }
 
+function energyUnit() {
+  return state.energy.inputMode === 'dose' ? state.energy.unit || 'kGy' : state.settings.doseUnit || 'kGy';
+}
+
 function computeEnergyUI() {
   const energy = state.energy;
   const auto = energy.autoFit !== false;
@@ -4610,16 +4934,19 @@ function computeEnergyUI() {
     tr.classList.toggle('selected', inRange);
   });
 
-  const unit = state.settings.doseUnit || 'kGy';
+  const unit = energyUnit();
   $('enDmax').textContent = result.dmax === null ? '—' : `${result.dmax.toFixed(3)} ${unit}`;
   $('enR50').textContent = result.r50 === null ? '—' : result.r50.toFixed(3);
   $('enRp').textContent = result.rp === null ? '—' : result.rp.toFixed(3);
-  $('enEa').textContent = result.ea === null ? '—' : result.ea.toFixed(2);
-  $('enEp').textContent = result.ep === null ? '—' : result.ep.toFixed(2);
+  $('enEa').textContent = result.ea === null ? '—' : result.ea.toFixed(3);
+  $('enEp').textContent = result.ep === null ? '—' : result.ep.toFixed(3);
 
   const progress = $('energyProgress');
   if (progress) {
-    const filled = energy.rows.filter((row) => row.ai !== null && row.ai !== '').length;
+    const doseMode = energy.inputMode === 'dose';
+    const filled = energy.rows.filter((row) =>
+      doseMode ? row.dose !== null && row.dose !== '' && row.dose !== undefined : row.ai !== null && row.ai !== '',
+    ).length;
     progress.textContent = `${filled}/${energy.rows.length}`;
   }
 
@@ -4647,17 +4974,30 @@ function computeEnergyUI() {
 
 function updateEnergyUI() {
   const energy = state.energy;
+  const doseMode = energy.inputMode === 'dose';
 
   $('inpEnergyFitFrom').value = String(energy.fitFrom);
   $('inpEnergyFitTo').value = String(energy.fitTo);
+  $('selEnergyInput').value = doseMode ? 'dose' : 'abs';
+  $('energyUnitField').hidden = !doseMode;
+  $('selEnergyDoseUnit').value = energy.unit || 'kGy';
 
   const auto = energy.autoFit !== false;
   $('chkEnergyAutoFit').checked = auto;
   $('energyFitFields').hidden = auto;
 
+  const tableEl = document.querySelector('.energy-table');
+  if (tableEl) {
+    tableEl.classList.toggle('dose-mode', doseMode);
+    const headers = tableEl.querySelectorAll('thead th');
+    if (headers[2]) headers[2].textContent = doseMode ? `Dose (${energyUnit()})` : 'Ai';
+  }
+
   const table = state.calibration.table || [];
   const info = $('energyCalInfo');
-  if (table.length === 0) {
+  if (doseMode) {
+    info.textContent = 'โหมดกรอกโดสโดยตรง — ไม่ต้องใช้ตารางสอบเทียบ (วางค่าจาก Excel ได้เลย)';
+  } else if (table.length === 0) {
     info.textContent = 'ยังไม่มีตารางสอบเทียบ — นำเข้าที่แท็บ “สอบเทียบ” ก่อน (แท็บนี้ใช้ตารางเดียวกัน)';
   } else {
     const first = table[0];
@@ -4669,14 +5009,14 @@ function updateEnergyUI() {
 }
 
 function addEnergyRows(count = 6) {
-  for (let i = 0; i < count; i += 1) state.energy.rows.push({ depth: null, ai: null });
+  for (let i = 0; i < count; i += 1) state.energy.rows.push({ depth: null, ai: null, dose: null });
   save();
   renderEnergyTable();
   computeEnergyUI();
 }
 
 function clearEnergyRows() {
-  if (!window.confirm('ล้างค่า Ai ทั้งหมด และคืนระยะลึกมาตรฐาน 60 ระดับ?')) return;
+  if (!window.confirm('ล้างค่าที่กรอกทั้งหมด และคืนระยะลึกมาตรฐาน 60 ระดับ?')) return;
   state.energy.rows = createStandardRows();
   save();
   renderEnergyTable();
@@ -4695,12 +5035,32 @@ function captureLatestToEnergy() {
     return;
   }
 
-  let target = state.energy.rows.find((row) => row.ai === null || row.ai === '');
+  const doseMode = state.energy.inputMode === 'dose';
+  let dose = null;
+  if (doseMode) {
+    const table = state.calibration.table || [];
+    dose = table.length ? doseFromPoints(abs, table) : null;
+    if (dose === null) {
+      toast('โหมดกรอกโดสต้องมีตารางสอบเทียบก่อน');
+      return;
+    }
+  }
+
+  const isTarget = (row) => (doseMode ? row.dose === null || row.dose === '' : row.ai === null || row.ai === '');
+  let target = state.energy.rows.find(isTarget);
   if (!target) {
-    target = { depth: null, ai: null };
+    target = { depth: null, ai: null, dose: null };
     state.energy.rows.push(target);
   }
-  target.ai = Number(abs.toFixed(4));
+
+  if (doseMode) {
+    target.dose = Number(dose.toFixed(4));
+    target.ai = null;
+  } else {
+    target.ai = Number(abs.toFixed(4));
+    target.dose = null;
+  }
+
   const index = state.energy.rows.indexOf(target);
 
   save();
@@ -4709,10 +5069,10 @@ function captureLatestToEnergy() {
 
   const rowEl = $('energyRows').children[index];
   if (rowEl) rowEl.scrollIntoView({ block: 'center' });
-  toast(`เก็บค่า Ai = ${abs.toFixed(4)} ที่แถว ${index + 1}`);
+  toast(doseMode ? `เก็บค่า Dose = ${dose.toFixed(3)} ที่แถว ${index + 1}` : `เก็บค่า Ai = ${abs.toFixed(4)} ที่แถว ${index + 1}`);
 }
 
-/** ถ้าอยู่แท็บพลังงาน ให้เติมค่า Ai ลงแถวว่างถัดไปตามลำดับระยะลึกอัตโนมัติ */
+/** ถ้าอยู่แท็บพลังงาน ให้เติมค่าลงแถวว่างถัดไปตามลำดับระยะลึกอัตโนมัติ */
 function autoCaptureEnergyReading(reading) {
   const panel = document.querySelector('.tab-panel.is-active');
   if (!panel || panel.dataset.panel !== 'energy') return;
@@ -4720,10 +5080,26 @@ function autoCaptureEnergyReading(reading) {
   const abs = toAbsorbance(reading.value, reading.unit);
   if (abs === null) return;
 
-  const target = state.energy.rows.find((row) => row.ai === null || row.ai === '');
+  const doseMode = state.energy.inputMode === 'dose';
+  let dose = null;
+  if (doseMode) {
+    const table = state.calibration.table || [];
+    dose = table.length ? doseFromPoints(abs, table) : null;
+    if (dose === null) return;
+  }
+
+  const isTarget = (row) => (doseMode ? row.dose === null || row.dose === '' : row.ai === null || row.ai === '');
+  const target = state.energy.rows.find(isTarget);
   if (!target) return;
 
-  target.ai = Number(abs.toFixed(4));
+  if (doseMode) {
+    target.dose = Number(dose.toFixed(4));
+    target.ai = null;
+  } else {
+    target.ai = Number(abs.toFixed(4));
+    target.dose = null;
+  }
+
   const index = state.energy.rows.indexOf(target);
 
   save();
@@ -4734,13 +5110,14 @@ function autoCaptureEnergyReading(reading) {
   if (rowEl) rowEl.scrollIntoView({ block: 'center' });
 }
 
-/** จำลอง depth–dose ตามพลังงาน แล้วเติม Ai ลง 60 แถว (ใช้ตารางสอบเทียบ A → Dose) */
+/** จำลอง depth–dose ตามพลังงาน แล้วเติมค่าลงตาราง 60 แถว (โหมด Dose = โดสโดยตรง, โหมด Ai = แปลงผ่านตาราง) */
 function runEnergySimulation() {
   const energy = num($('inpSimEnergy').value, 0);
+  const doseMode = state.energy.inputMode === 'dose';
   const table = state.calibration.table || [];
 
-  if (table.length < 2) {
-    toast('นำเข้าตารางสอบเทียบที่แท็บ “สอบเทียบ” ก่อนจำลอง');
+  if (!doseMode && table.length < 2) {
+    toast('โหมด Ai ต้องมีตารางสอบเทียบก่อน — หรือสลับเป็นโหมด Dose เพื่อจำลองค่าโดส');
     return;
   }
 
@@ -4752,37 +5129,108 @@ function runEnergySimulation() {
       })
       .filter((depth) => depth !== null);
 
-    const simulation = simulateDepthDose({ energy, depths, table, ao: 0, thickness: 1 });
+    const peak = num($('inpSimPeak').value, 31);
 
-    state.energy.rows = simulation.rows;
+    const generate = (seed) =>
+      doseMode
+        ? simulateDoseCurve({ energy: seed, depths, peakDose: peak }).rows
+        : simulateDepthDose({ energy: seed, depths, table, ao: 0, thickness: 1, peakDose: peak }).rows;
+
+    const evaluate = (rows) =>
+      computeEnergy({
+        rows,
+        ao: 0,
+        thickness: 1,
+        correction: 1,
+        table,
+        autoFit: state.energy.autoFit !== false,
+        criterion: 'r2',
+        fitFrom: state.energy.fitFrom,
+        fitTo: state.energy.fitTo,
+      });
+
+    let seed = energy;
+    let rows = generate(seed);
+    let result = evaluate(rows);
+
+    // ปรับ seed ให้ Ea ที่คำนวณได้ตรงกับพลังงานที่ผู้ใช้ใส่ (สูงสุด 5 รอบ)
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      if (result.error || result.ea === null || Math.abs(result.ea - energy) <= 0.005) break;
+      const factor = energy / result.ea;
+      if (!Number.isFinite(factor) || factor <= 0) break;
+      seed *= factor;
+      rows = generate(seed);
+      result = evaluate(rows);
+    }
+
+    state.energy.rows = rows;
+
     save();
     activateTab('energy');
     renderEnergyTable();
     updateEnergyUI();
 
-    const result = computeEnergy({
-      rows: state.energy.rows,
-      ao: 0,
-      thickness: 1,
-      correction: 1,
-      table,
-      autoFit: false,
-      fitFrom: state.energy.fitFrom,
-      fitTo: state.energy.fitTo,
-    });
-
-    if (result.error) {
-      toast(`จำลอง ${energy} MeV แล้ว แต่ยังคำนวณไม่ได้: ${result.error}`);
+    if (!result || result.error) {
+      toast(`จำลอง ${energy} MeV แล้ว แต่ยังคำนวณไม่ได้: ${result ? result.error : 'ไม่มีผลคำนวณ'}`);
     } else {
-      toast(`จำลอง ${energy} MeV → Ea ${result.ea.toFixed(2)} · Ep ${result.ep.toFixed(2)} MeV`);
+      toast(`จำลอง ${energy} MeV → Ea ${result.ea.toFixed(3)} · Ep ${result.ep.toFixed(3)} MeV`);
     }
   } catch (err) {
     toast(`จำลองไม่สำเร็จ: ${err && err.message ? err.message : err}`);
   }
 }
 
+/** ส่งออก Excel ฟอร์ม Dose Conversion (แบบเดียวกับ energy test.xlsx) */
+function exportEnergyForm() {
+  const table = state.calibration.table || [];
+  if (table.length < 2) {
+    toast('ต้องนำเข้าตารางสอบเทียบก่อน (ใช้ทำ VLOOKUP ใน Excel)');
+    return;
+  }
+  if (state.energy.inputMode === 'dose') {
+    toast('ฟอร์ม Excel นี้ใช้กับโหมด Ai — สลับเป็น Ai ก่อน');
+    return;
+  }
+
+  const result = lastEnergyResult;
+  const from = result && result.range ? result.range.from : state.energy.fitFrom;
+  const to = result && result.range ? result.range.to : state.energy.fitTo;
+
+  try {
+    const sheets = buildEnergyFormWorkbook({
+      depths: state.energy.rows.map((row) => row.depth),
+      ais: state.energy.rows.map((row) => row.ai),
+      unit: state.settings.doseUnit,
+      table,
+      fitFrom: from,
+      fitTo: to,
+    });
+    const bytes = buildXlsx(sheets);
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    downloadBlob(
+      new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      `energy-form-${stamp}.xlsx`,
+    );
+    toast('สร้าง Excel ฟอร์มแล้ว — เปิดใน Excel สูตรจะคำนวณเอง');
+  } catch (err) {
+    toast(`สร้างฟอร์มไม่สำเร็จ: ${err && err.message ? err.message : err}`);
+  }
+}
+
 function bindEnergy() {
   $('btnSimRun').addEventListener('click', runEnergySimulation);
+  $('selEnergyInput').addEventListener('change', (event) => {
+    state.energy.inputMode = event.target.value === 'dose' ? 'dose' : 'abs';
+    save();
+    renderEnergyTable();
+    updateEnergyUI();
+  });
+  $('btnEnergyForm').addEventListener('click', exportEnergyForm);
+  $('selEnergyDoseUnit').addEventListener('change', (event) => {
+    state.energy.unit = event.target.value || 'kGy';
+    save();
+    updateEnergyUI();
+  });
   $('chkEnergyAutoFit').addEventListener('change', (event) => {
     state.energy.autoFit = event.target.checked;
     $('energyFitFields').hidden = event.target.checked;
@@ -4827,14 +5275,16 @@ function currentEnergyReport() {
   const result = lastEnergyResult;
   if (!result || result.error || !result.fit || result.r2 === null) return null;
 
+  const mode = state.energy.inputMode === 'dose' ? 'dose' : 'abs';
   const rows = result.rows
-    .filter((row) => row.depth !== null && row.ai !== null && row.ai !== '' && row.adjusted !== null)
+    .filter((row) => row.depth !== null && row.adjusted !== null)
     .map((row, index) => ({ no: index + 1, depth: row.depth, ai: row.ai, dose: row.adjusted }));
 
   if (rows.length < 2) return null;
 
   return {
-    unit: state.settings.doseUnit || 'kGy',
+    mode,
+    unit: energyUnit(),
     dmax: result.dmax,
     r50: result.r50,
     rp: result.rp,
@@ -4881,7 +5331,7 @@ function energyChartImage(width = 1100, height = 340) {
   drawDepthDoseChart(canvas, points, {
     width,
     height,
-    unit: state.settings.doseUnit,
+    unit: energyUnit(),
     fit: result.fit,
     markers:
       result.r50 !== null && result.dmax !== null
@@ -5088,8 +5538,557 @@ function bindSettings() {
   });
 }
 
+/* ------------------------------------------------------------------ */
+/* calibration builder (จากโดสมาตรฐาน)                                  */
+/* ------------------------------------------------------------------ */
+
+function builderPoints() {
+  return state.builder.rows
+    .map((row) => ({
+      ai: row.ai === null || row.ai === '' ? null : Number(row.ai),
+      dose: row.dose === null || row.dose === '' ? null : Number(row.dose),
+    }))
+    .filter((point) => Number.isFinite(point.ai) && Number.isFinite(point.dose) && point.dose > 0)
+    .sort((a, b) => a.ai - b.ai);
+}
+
+function builderUnit() {
+  return state.builder.unit || 'kGy';
+}
+
+const BUILDER_MAX_GAP = 0.35;
+
+/** ดีกรีโพลิโนเมียลที่ใช้ — ล็อกที่ 10 */
+function builderDegree(points) {
+  return Math.min(10, Math.max(2, points.length - 1));
+}
+
+/** โหมดเส้น — ล็อกโพลิโนเมียล */
+function builderMode() {
+  return 'poly';
+}
+
+/**
+ * เกณฑ์ของชุดตัวอย่างสอบเทียบ — ล็อก 16 จุด
+ */
+function builderValidation(points) {
+  const issues = [];
+  const required = 16;
+
+  if (points.length < required) {
+    issues.push(`ต้องกรอกครบ ${required} จุด (มี ${points.length})`);
+    return { ok: false, issues };
+  }
+
+  const first = points[0].ai;
+  const last = points[points.length - 1].ai;
+  const span = last - first;
+
+  if (!(span > 0)) {
+    issues.push('ค่า Absorbance ซ้ำกันทั้งหมด');
+    return { ok: false, issues };
+  }
+
+  const zones = [false, false, false];
+  for (const point of points) {
+    const t = (point.ai - first) / span;
+    zones[Math.min(2, Math.floor(t * 3))] = true;
+  }
+  if (zones.includes(false)) issues.push('ต้องมีจุดครอบโซนต่ำ/กลาง/สูง');
+
+  let maxGap = 0;
+  for (let i = 1; i < points.length; i += 1) {
+    maxGap = Math.max(maxGap, (points[i].ai - points[i - 1].ai) / span);
+  }
+  if (maxGap > BUILDER_MAX_GAP) {
+    issues.push(`ช่องว่างระหว่างจุด ${Math.round(maxGap * 100)}% เกิน ${Math.round(BUILDER_MAX_GAP * 100)}%`);
+  }
+
+  return { ok: issues.length === 0, issues };
+}
+
+/** คำนวณความชันแบบ monotone cubic (PCHIP) จากจุดวัด */
+function pchipData(points) {
+  const n = points.length;
+  const h = [];
+  const delta = [];
+
+  for (let i = 0; i < n - 1; i += 1) {
+    h[i] = points[i + 1].ai - points[i].ai;
+    delta[i] = (points[i + 1].dose - points[i].dose) / h[i];
+  }
+
+  const m = new Array(n).fill(0);
+  m[0] = delta[0];
+  m[n - 1] = delta[n - 2];
+
+  for (let i = 1; i < n - 1; i += 1) {
+    const d0 = delta[i - 1];
+    const d1 = delta[i];
+    if (d0 === 0 || d1 === 0 || d0 * d1 < 0) {
+      m[i] = 0;
+      continue;
+    }
+    const w1 = 2 * h[i] + h[i - 1];
+    const w2 = h[i] + 2 * h[i - 1];
+    m[i] = (w1 + w2) / (w1 / d0 + w2 / d1);
+  }
+
+  return { h, m };
+}
+
+function pchipValue(points, data, a) {
+  if (a <= points[0].ai) return points[0].dose;
+  if (a >= points[points.length - 1].ai) return points[points.length - 1].dose;
+
+  let i = 1;
+  while (i < points.length - 1 && a > points[i].ai) i += 1;
+
+  const h = data.h[i - 1];
+  const t = (a - points[i - 1].ai) / h;
+  const t2 = t * t;
+  const t3 = t2 * t;
+
+  return (
+    (2 * t3 - 3 * t2 + 1) * points[i - 1].dose +
+    (t3 - 2 * t2 + t) * h * data.m[i - 1] +
+    (-2 * t3 + 3 * t2) * points[i].dose +
+    (t3 - t2) * h * data.m[i]
+  );
+}
+
+/** fit โพลิโนเมียลกำลังต่ำสุดที่ให้ความคลาดเคลื่อนน้อยที่สุด (กำลังสองน้อยสุด) */
+function polyFitPoints(points, degree) {
+  const n = degree + 1;
+  const center = points.reduce((sum, point) => sum + point.ai, 0) / points.length;
+
+  const A = Array.from({ length: n }, () => new Array(n + 1).fill(0));
+  for (const point of points) {
+    const x = point.ai - center;
+    const powers = Array.from({ length: 2 * degree + 1 }, (_, k) => x ** k);
+    for (let i = 0; i < n; i += 1) {
+      for (let j = 0; j < n; j += 1) A[i][j] += powers[i + j];
+      A[i][n] += powers[i] * point.dose;
+    }
+  }
+
+  for (let col = 0; col < n; col += 1) {
+    let pivot = col;
+    for (let r = col + 1; r < n; r += 1) if (Math.abs(A[r][col]) > Math.abs(A[pivot][col])) pivot = r;
+    [A[col], A[pivot]] = [A[pivot], A[col]];
+    const div = A[col][col] || 1e-12;
+    for (let j = col; j <= n; j += 1) A[col][j] /= div;
+    for (let r = 0; r < n; r += 1) {
+      if (r === col) continue;
+      const factor = A[r][col];
+      for (let j = col; j <= n; j += 1) A[r][j] -= factor * A[col][j];
+    }
+  }
+
+  return { degree, center, coeffs: A.map((row) => row[n]) };
+}
+
+function polyValueAt(fit, a) {
+  const x = a - fit.center;
+  return fit.coeffs.reduce((sum, coeff, k) => sum + coeff * x ** k, 0);
+}
+
+/** ขยายจุดวัดให้เป็นตารางละเอียด (poly / cubic) */
+function densifyBuilderPoints(points, count, mode = 'poly') {
+  const target = Math.round(Number(count) || 0);
+  if (points.length < 2 || target <= points.length) return points;
+
+  const aMin = points[0].ai;
+  const aMax = points[points.length - 1].ai;
+  const span = aMax - aMin;
+  if (!(span > 0)) return points;
+
+  const resolved = mode === 'auto' ? builderMode(points) : mode;
+
+  if (resolved === 'linear') {
+    const result = [];
+    let seg = 1;
+    for (let i = 0; i < target; i += 1) {
+      const a = aMin + (span * i) / (target - 1);
+      while (seg < points.length - 1 && a > points[seg].ai) seg += 1;
+      const p0 = points[seg - 1];
+      const p1 = points[seg];
+      const denom = p1.ai - p0.ai;
+      const t = denom === 0 ? 0 : (a - p0.ai) / denom;
+      result.push({
+        ai: Number(a.toFixed(6)),
+        dose: Number((p0.dose + t * (p1.dose - p0.dose)).toFixed(4)),
+      });
+    }
+    return result;
+  }
+
+  if (resolved === 'poly') {
+    const fit = polyFitPoints(points, builderDegree(points));
+    const result = [];
+    for (let i = 0; i < target; i += 1) {
+      const a = aMin + (span * i) / (target - 1);
+      result.push({ ai: Number(a.toFixed(6)), dose: Number(polyValueAt(fit, a).toFixed(4)) });
+    }
+    return result;
+  }
+
+  const data = pchipData(points);
+  const result = [];
+  for (let i = 0; i < target; i += 1) {
+    const a = aMin + (span * i) / (target - 1);
+    result.push({ ai: Number(a.toFixed(6)), dose: Number(pchipValue(points, data, a).toFixed(4)) });
+  }
+  return result;
+}
+
+function renderBuilderTable() {
+  const body = $('builderRows');
+  if (!body) return;
+  body.replaceChildren();
+
+  const unit = builderUnit();
+
+  state.builder.rows.forEach((row, index) => {
+    const tr = document.createElement('tr');
+
+    const tdNo = document.createElement('td');
+    tdNo.textContent = String(index + 1);
+
+    const tdDose = document.createElement('td');
+    const dose = document.createElement('input');
+    dose.type = 'number';
+    dose.step = '0.001';
+    dose.inputMode = 'decimal';
+    dose.placeholder = unit;
+    dose.value = row.dose === null || row.dose === undefined ? '' : String(row.dose);
+    dose.addEventListener('input', () => {
+      row.dose = dose.value === '' ? null : Number(dose.value);
+      save();
+      updateBuilderNote();
+    });
+    tdDose.appendChild(dose);
+
+    const tdAi = document.createElement('td');
+    const ai = document.createElement('input');
+    ai.type = 'number';
+    ai.step = '0.0001';
+    ai.inputMode = 'decimal';
+    ai.placeholder = 'A';
+    ai.value = row.ai === null || row.ai === undefined ? '' : String(row.ai);
+    ai.addEventListener('input', () => {
+      row.ai = ai.value === '' ? null : Number(ai.value);
+      save();
+      updateBuilderNote();
+    });
+    tdAi.appendChild(ai);
+
+    tr.append(tdNo, tdDose, tdAi);
+    body.appendChild(tr);
+  });
+
+  updateBuilderNote();
+}
+
+function updateBuilderNote() {
+  const points = builderPoints();
+  const progress = $('builderProgress');
+  if (progress) progress.textContent = `${points.length}/${state.builder.rows.length}`;
+
+  const note = $('builderNote');
+  if (!note) return;
+
+  if (points.length === 0) {
+    const filled = state.builder.rows.filter((row) => Number.isFinite(row.dose)).length;
+    note.textContent = filled
+      ? `มีค่าโดส ${filled}/${state.builder.rows.length} รายการ — อ่านค่า A ด้วย SND เพื่อเติม`
+      : 'ยังไม่มีคู่ Dose/Absorbance — ใส่ค่าโดสแล้วอ่านค่า A';
+    return;
+  }
+
+  const doseMin = Math.min(...points.map((point) => point.dose));
+  const doseMax = Math.max(...points.map((point) => point.dose));
+  const resolved = builderMode(points);
+  const dense = densifyBuilderPoints(points, state.builder.dense, resolved).length;
+  const valid = builderValidation(points);
+  const curveLabel = resolved === 'poly' ? `โพลิโนเมียล ดีกรี ${builderDegree(points)}` : 'เส้นโค้ง cubic';
+  const modeKey = resolved === 'poly' ? String(builderDegree(points)) : 'cubic';
+  const error = estimateModelError(points, modeKey);
+  const status = valid.ok
+    ? `✓ ผ่านเกณฑ์ (${state.builder.points || 10} จุด ครอบต้น/กลาง/ปลาย)`
+    : `⚠ ยังไม่ผ่าน: ${valid.issues.join(' · ')}`;
+
+  note.textContent =
+    `${points.length} จุด · A ${points[0].ai.toFixed(4)}–${points[points.length - 1].ai.toFixed(4)} · Dose ${doseMin}–${doseMax} ${builderUnit()} · ${curveLabel}` +
+    (error === null ? '' : ` · คลาดเคลื่อน ${error.toFixed(3)}%`) +
+    (dense > points.length ? ` · ขยายเป็น ${dense} จุด` : '') +
+    ` · ${status}`;
+}
+
+function builderReference(points) {
+  const table = (state.calibration.table || []).filter(
+    (point) => point && Number.isFinite(point.a) && Number.isFinite(point.dose),
+  );
+  const aMin = points[0].ai;
+  const aMax = points[points.length - 1].ai;
+  return table.filter((point) => point.a >= aMin && point.a <= aMax);
+}
+
+function estimateModelError(points, mode, reference) {
+  const ref = reference || builderReference(points);
+  return ref.length >= 5 ? maxErrorForModel(points, mode, ref) : loocvError(points, mode);
+}
+
+function maxErrorForModel(points, mode, reference) {
+  let valueAt;
+  if (mode === 'cubic') {
+    const data = pchipData(points);
+    valueAt = (a) => pchipValue(points, data, a);
+  } else {
+    const degree = Math.min(Number(mode), points.length - 1);
+    const fit = polyFitPoints(points, degree);
+    valueAt = (a) => polyValueAt(fit, a);
+  }
+
+  let maxRel = 0;
+  for (const point of reference) {
+    if (!(point.dose > 0)) continue;
+    maxRel = Math.max(maxRel, Math.abs(valueAt(point.a) - point.dose) / point.dose);
+  }
+  return maxRel * 100;
+}
+
+function loocvError(points, mode) {
+  let maxRel = 0;
+  for (let i = 0; i < points.length; i += 1) {
+    const subset = points.filter((_, index) => index !== i);
+    let valueAt;
+    if (mode === 'cubic') {
+      const data = pchipData(subset);
+      valueAt = (a) => pchipValue(subset, data, a);
+    } else {
+      const degree = Math.min(Number(mode), subset.length - 1);
+      if (degree < 1) return null;
+      const fit = polyFitPoints(subset, degree);
+      valueAt = (a) => polyValueAt(fit, a);
+    }
+    if (points[i].dose > 0) maxRel = Math.max(maxRel, Math.abs(valueAt(points[i].ai) - points[i].dose) / points[i].dose);
+  }
+  return maxRel * 100;
+}
+
+function clearBuilder() {
+  state.builder.rows = Array.from({ length: state.builder.points || 16 }, () => ({ dose: null, ai: null }));
+  save();
+  renderBuilderTable();
+}
+
+function captureLatestToBuilder() {
+  const reading = lastReading();
+  if (!reading) {
+    toast('ยังไม่มีค่าที่อ่านได้');
+    return;
+  }
+  const abs = toAbsorbance(reading.value, reading.unit);
+  if (abs === null) {
+    toast('ค่าล่าสุดแปลงเป็น absorbance ไม่ได้');
+    return;
+  }
+
+  const target = state.builder.rows.find((row) => row.ai === null || row.ai === '');
+  if (!target) {
+    toast('แถวเต็มแล้ว — เพิ่มแถวก่อน');
+    return;
+  }
+
+  target.ai = Number(abs.toFixed(4));
+  const index = state.builder.rows.indexOf(target);
+  save();
+  renderBuilderTable();
+  toast(`เก็บ A = ${abs.toFixed(4)} ที่แถว ${index + 1}`);
+}
+
+/** เก็บค่า Absorbance อัตโนมัติเมื่ออ่านค่าขณะอยู่แท็บสอบเทียบ */
+function autoCaptureBuilderReading(reading) {
+  const panel = document.querySelector('.tab-panel.is-active');
+  if (!panel || panel.dataset.panel !== 'cal') return;
+  if (state.builder.autoCapture === false) return;
+
+  const abs = toAbsorbance(reading.value, reading.unit);
+  if (abs === null) return;
+
+  const target = state.builder.rows.find((row) => row.ai === null || row.ai === '');
+  if (!target) return;
+
+  target.ai = Number(abs.toFixed(4));
+  save();
+  renderBuilderTable();
+}
+
+function exportBuilderExcel() {
+  const points = builderPoints();
+  if (points.length < 2) {
+    toast('ต้องมีอย่างน้อย 2 จุดก่อนสร้างไฟล์');
+    return;
+  }
+
+  const validation = builderValidation(points);
+  if (!validation.ok) {
+    toast(`ยังไม่ผ่านเกณฑ์: ${validation.issues[0]}`);
+    return;
+  }
+
+  const unit = builderUnit();
+  const resolved = builderMode(points);
+  const dense = densifyBuilderPoints(points, state.builder.dense, resolved);
+  const rows = [['Absorbance', `Dose (${unit})`], ...dense.map((point) => [point.ai, point.dose])];
+  const sheets = [{ name: 'Calibration', rows }];
+
+  if (resolved === 'poly') {
+    const fit = polyFitPoints(points, builderDegree(points));
+    sheets.push({
+      name: 'Equation',
+      rows: [
+        ['รูปแบบ', 'โพลิโนเมียล'],
+        ['ดีกรี', fit.degree],
+        ['Center (A)', fit.center],
+        ['สมการ', 'D = c0 + c1*(A-center) + c2*(A-center)^2 + ...'],
+        ...fit.coeffs.map((coeff, index) => [`c${index}`, coeff]),
+        ['ช่วง A ที่วัด', `${points[0].ai} – ${points[points.length - 1].ai}`],
+        ['จำนวนจุดวัด', points.length],
+      ],
+    });
+  }
+
+  try {
+    const bytes = buildXlsx(sheets);
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-');
+    downloadBlob(
+      new Blob([bytes], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      `calibration-standard-${stamp}.xlsx`,
+    );
+    toast(
+      dense.length > points.length
+        ? `สร้างไฟล์สอบเทียบ ${dense.length} จุด (จาก ${points.length} จุดวัด)`
+        : `สร้างไฟล์สอบเทียบ ${points.length} จุดแล้ว`,
+    );
+  } catch (err) {
+    toast(`สร้างไฟล์ไม่สำเร็จ: ${err && err.message ? err.message : err}`);
+  }
+}
+
+function useBuilderAsCalibration() {
+  const points = builderPoints();
+  if (points.length < 2) {
+    toast('ต้องมีอย่างน้อย 2 จุด');
+    return;
+  }
+
+  const validation = builderValidation(points);
+  if (!validation.ok) {
+    toast(`ยังไม่ผ่านเกณฑ์: ${validation.issues[0]}`);
+    return;
+  }
+
+  const resolved = builderMode(points);
+  const dense = densifyBuilderPoints(points, state.builder.dense, resolved);
+
+  state.calibration.table = dense.map((point) => ({ a: point.ai, dose: point.dose }));
+  state.calibration.tableName =
+    dense.length > points.length
+      ? `ตารางสอบเทียบจากโดสมาตรฐาน (${points.length} จุดวัด → ${dense.length} จุด)`
+      : `ตารางสอบเทียบจากโดสมาตรฐาน (${points.length} จุด)`;
+  state.calibration.enabled = true;
+  state.calibration.mode = 'table';
+  state.settings.doseUnit = builderUnit();
+  save();
+  updateCalibrationUI();
+  refreshDerived();
+  updateEnergyUI();
+  toast('ใช้ตารางสอบเทียบแล้ว');
+}
+
+/** ดึงจุดจากตารางสอบเทียบที่นำเข้า (เช่น ไฟล์ตัวอย่าง) มาเป็นชุดตัวอย่างสำหรับสร้างสมการ */
+function sampleBuilderFromTable(count = 10) {
+  const table = state.calibration.table || [];
+  if (table.length < count) {
+    toast(`ต้องมีตารางที่นำเข้า ≥ ${count} จุด (มี ${table.length})`);
+    return;
+  }
+
+  const rows = [];
+  for (let i = 0; i < count; i += 1) {
+    const index = Math.round((i * (table.length - 1)) / (count - 1));
+    rows.push({ dose: Number(table[index].dose.toFixed(4)), ai: Number(table[index].a.toFixed(4)) });
+  }
+
+  state.builder.rows = rows;
+  save();
+  renderBuilderTable();
+  updateBuilderUI();
+  toast(`ดึง ${count} จุดจากตารางที่นำเข้าแล้ว`);
+}
+
+function updateBuilderUI() {
+  $('btnBuilderSample10').textContent = 'ดึง 16 จุดจากตารางที่นำเข้า';
+  $('selBuilderUnit').value = builderUnit();
+  $('inpBuilderDense').value = String(state.builder.dense ?? 881);
+  $('chkBuilderAuto').checked = state.builder.autoCapture !== false;
+  renderBuilderTable();
+}
+
+/** เติมค่าโดสแนะนำ 16 ระดับจากช่วงของตารางที่นำเข้า (ถ้าหาไม่ได้ให้ใช้ค่าใกล้เคียง) */
+function suggestBuilderDoses() {
+  const table = state.calibration.table || [];
+  if (table.length < 16) {
+    toast('ต้องนำเข้าตารางสอบเทียบก่อน');
+    return;
+  }
+
+  const values = table.map((point) => Number(point.dose)).filter((dose) => Number.isFinite(dose) && dose > 0);
+  if (!values.length) {
+    toast('ตารางไม่มีค่าโดส');
+    return;
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const rows = state.builder.rows.length ? state.builder.rows : Array.from({ length: 16 }, () => ({ dose: null, ai: null }));
+
+  for (let i = 0; i < rows.length; i += 1) {
+    const suggested = min + ((max - min) * i) / (rows.length - 1);
+    rows[i].dose = Number(suggested.toFixed(3));
+  }
+
+  state.builder.rows = rows;
+  save();
+  renderBuilderTable();
+  updateBuilderNote();
+  toast(`แนะนำ ${rows.length} ระดับโดส ${min.toFixed(2)}–${max.toFixed(2)} ${builderUnit()} — ถ้าหาไม่ได้ให้ใช้ค่าใกล้เคียง`);
+}
+
 function bindCalibration() {
   const c = state.calibration;
+
+  $('btnBuilderSuggest').addEventListener('click', suggestBuilderDoses);
+  $('btnBuilderSample10').addEventListener('click', () => sampleBuilderFromTable(state.builder.points || 16));
+  $('btnBuilderClear').addEventListener('click', clearBuilder);
+  $('btnBuilderExport').addEventListener('click', exportBuilderExcel);
+  $('btnBuilderUse').addEventListener('click', useBuilderAsCalibration);
+  $('chkBuilderAuto').addEventListener('change', (e) => {
+    state.builder.autoCapture = e.target.checked;
+    save();
+  });
+  $('selBuilderUnit').addEventListener('change', (e) => {
+    state.builder.unit = e.target.value || 'kGy';
+    save();
+    renderBuilderTable();
+  });
+  $('inpBuilderDense').addEventListener('input', (e) => {
+    state.builder.dense = Math.max(0, Math.min(5000, Math.round(Number(e.target.value) || 0)));
+    save();
+    updateBuilderNote();
+  });
 
   $('chkCalib').addEventListener('change', (e) => {
     c.enabled = e.target.checked;
@@ -5105,7 +6104,6 @@ function bindCalibration() {
   });
 
   $('btnImportCal').addEventListener('click', () => $('inpCalFile').click());
-  $('btnImportCalTop').addEventListener('click', () => $('inpCalFile').click());
   $('inpCalTest').addEventListener('input', updateCalTest);
   $('inpCalFile').addEventListener('change', (e) => {
     const file = e.target.files && e.target.files[0];
@@ -5343,6 +6341,7 @@ function init() {
   setConnectedUI(false);
   void initPorts();
   updateCalibrationUI();
+  updateBuilderUI();
   renderEnergyTable();
   updateEnergyUI();
 

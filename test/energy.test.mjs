@@ -8,6 +8,7 @@ import {
   STANDARD_DEPTHS,
   createStandardRows,
   simulateDepthDose,
+  simulateDoseCurve,
   doseToResponse,
 } from '../js/energy.js';
 
@@ -205,6 +206,20 @@ test('simulateDepthDose: จำลองแล้วคำนวณพลัง�
   }
 });
 
+test('simulateDoseCurve: จำลองโดสแล้วคำนวณพลังงานกลับได้ใกล้ค่าที่ป้อน', () => {
+  for (const energy of [10, 19.2]) {
+    const simulation = simulateDoseCurve({ energy, depths: STANDARD_DEPTHS, peakDose: 31 });
+    assert.equal(simulation.rows.length, 60);
+    assert.ok(simulation.rows.every((row) => Number.isFinite(row.dose)));
+
+    const result = computeEnergy({ rows: simulation.rows, table: [], autoFit: true });
+    assert.equal(result.error, '', `energy ${energy}: ${result.error}`);
+    const error = Math.abs(result.ea - energy);
+    assert.ok(error < 0.8, `Ea ${result.ea.toFixed(2)} vs ${energy} (err ${error.toFixed(2)})`);
+    assert.ok(result.ep > 0);
+  }
+});
+
 test('simulateDepthDose: รูปทรง PDD (ขึ้นถึงยอดแล้วลดลง)', () => {
   const table = [
     { a: 1, dose: 0 },
@@ -218,6 +233,86 @@ test('simulateDepthDose: รูปทรง PDD (ขึ้นถึงยอด�
   assert.ok(peakIndex < values.length - 1, 'ยอดต้องไม่อยู่แถวสุดท้าย');
   assert.ok(values[0] < values[peakIndex], 'ผิวหน้าต้องน้อยกว่ายอด');
   assert.ok(values[values.length - 1] < values[peakIndex] * 0.2, 'ปลายต้องลดลงมาก');
+});
+
+test('computeEnergy: ตรงกับไฟล์ตัวอย่าง energy test.xlsx (fit แถว 27–40)', () => {
+  // ค่า Dose (adjusted) จากชีต Dose Conversion ของไฟล์ตัวอย่าง
+  const data = [
+    [1.6766778353449701, 31.064736163036699], // Dmax (ID 18)
+    [2.46641199044715, 25.539214234061699],
+    [2.5504262622665301, 24.029456222408498],
+    [2.6379411287450498, 22.761196282872799],
+    [2.7219554005644402, 21.506289421283199],
+    [3.1225437969599898, 15.6982055956025],
+    [3.2114589013021702, 14.443441783720001],
+    [3.3052748381671502, 12.9949798712023],
+    [3.3913894667820101, 11.359264603110001],
+    [3.4789043332605298, 10.3472657091105],
+    [3.56851955653454, 8.8104724421207603],
+    [3.6546341851494102, 7.3569137748978397],
+    [3.7400486948324398, 6.3747854225055898],
+    [3.8324643938337601, 5.2702372579590797],
+    [3.9206793792441101, 4.1745435095559804],
+  ];
+
+  const rows = data.map(([depth, dose]) => ({ depth, ai: dose }));
+  const table = [
+    { a: 0, dose: 0 },
+    { a: 1000, dose: 1000 },
+  ];
+
+  const result = computeEnergy({
+    rows,
+    ao: 0,
+    thickness: 1,
+    correction: 1,
+    table,
+    autoFit: false,
+    fitFrom: 2,
+    fitTo: 15,
+  });
+
+  assert.equal(result.error, '');
+  assert.ok(Math.abs(result.fit.slope - -14.822095469573899) < 1e-9);
+  assert.ok(Math.abs(result.fit.intercept - 61.899509471652607) < 1e-9);
+  assert.ok(Math.abs(result.r50 - 3.1282446861386468) < 1e-9);
+  assert.ok(Math.abs(result.rp - 4.1761645375120553) < 1e-9);
+  assert.ok(Math.abs(result.ea - 19.201165883519014) < 1e-9);
+  assert.ok(Math.abs(result.ep - 21.24411072097694) < 1e-9);
+});
+
+test('computeEnergy: กรอกโดสโดยตรง (ไม่ต้องมีตารางสอบเทียบ)', () => {
+  const data = [
+    [1.6766778353449701, 31.064736163036699],
+    [2.46641199044715, 25.539214234061699],
+    [2.5504262622665301, 24.029456222408498],
+    [2.6379411287450498, 22.761196282872799],
+    [2.7219554005644402, 21.506289421283199],
+    [3.1225437969599898, 15.6982055956025],
+    [3.2114589013021702, 14.443441783720001],
+    [3.3052748381671502, 12.9949798712023],
+    [3.3913894667820101, 11.359264603110001],
+    [3.4789043332605298, 10.3472657091105],
+    [3.56851955653454, 8.8104724421207603],
+    [3.6546341851494102, 7.3569137748978397],
+    [3.7400486948324398, 6.3747854225055898],
+    [3.8324643938337601, 5.2702372579590797],
+    [3.9206793792441101, 4.1745435095559804],
+  ];
+
+  const rows = data.map(([depth, dose]) => ({ depth, dose }));
+  const result = computeEnergy({
+    rows,
+    table: [],
+    autoFit: false,
+    fitFrom: 2,
+    fitTo: 15,
+    correction: 1,
+  });
+
+  assert.equal(result.error, '');
+  assert.ok(Math.abs(result.ea - 19.201165883519014) < 1e-9);
+  assert.ok(Math.abs(result.ep - 21.24411072097694) < 1e-9);
 });
 
 test('autoFitRange: ต้องมีจุดหลังยอดพอ', () => {

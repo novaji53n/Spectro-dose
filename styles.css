@@ -913,8 +913,36 @@ td.dose-cell strong { color: #0b5f58; }
 @media (min-width: 981px) {
   .layout.mode-solo { grid-template-columns: minmax(0, 1fr); }
   .layout.mode-solo .col-right { display: none; }
-  .layout.mode-solo .tab-panels { max-width: 980px; margin: 0 auto; width: 100%; }
+  .layout.mode-solo .tab-panels { max-width: none; margin: 0; width: 100%; }
 
   .layout.mode-reading { grid-template-columns: minmax(0, 1fr); }
   .layout.mode-reading .col-left { display: none; }
 }
+
+/* หน้าสอบเทียบ/เชื่อมต่อ: ใช้พื้นที่เต็มจอด้วยการ์ด 2 คอลัมน์ */
+@media (min-width: 1200px) {
+  .layout.mode-solo .tab-panel.is-active {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .layout.mode-solo .tab-panel.is-active > .card { min-width: 0; }
+  .layout.mode-solo .tab-panel.is-active > .card.wide { grid-column: 1 / -1; }
+}
+
+/* ---------- energy: dose-input mode ---------- */
+.paste-box {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px dashed #d0d5dd;
+  border-radius: 10px;
+  background: #fbfcfd;
+}
+.paste-box summary { cursor: pointer; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
+.paste-box textarea { width: 100%; margin-top: 6px; box-sizing: border-box; font: inherit; font-size: 12px; border-radius: 8px; border: 1px solid var(--line); padding: 6px 8px; }
+.paste-box .inline { margin-top: 6px; }
+
+.energy-table.dose-mode thead th:nth-child(4),
+.energy-table.dose-mode tbody td:nth-child(4) { display: none; }

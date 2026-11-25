@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 import { buildXlsx, readXlsx } from '../js/xlsx.js';
 import { buildCalibrationPoints } from '../js/calibration.js';
+import { buildEnergyFormWorkbook } from '../js/report.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
@@ -47,6 +48,46 @@ test('buildXlsx: ฝังรูปภาพ (drawing + media) ได้', async
   const { sheets: out } = await readXlsx(bytes);
   assert.equal(out[0].name, 'Energy');
   assert.equal(out[0].rows[1][1], '10.03');
+});
+
+test('buildEnergyFormWorkbook: ฟอร์ม Dose Conversion มีสูตร VLOOKUP/SLOPE และชีต Dose Table', async () => {
+  const sheets = buildEnergyFormWorkbook({
+    depths: [0.1812, 0.2701],
+    ais: [0.407, 0.416],
+    unit: 'kGy',
+    table: [
+      { a: 0.4, dose: 24.7 },
+      { a: 0.42, dose: 25.4 },
+    ],
+    fitFrom: 1,
+    fitTo: 2,
+  });
+
+  assert.equal(sheets[0].name, 'Dose Conversion');
+  assert.equal(sheets[1].name, 'Dose Table');
+
+  // โครงเดียวกับ energy test.xlsx
+  assert.equal(sheets[0].rows[0][0], 'DOSE CONVERSION SHEET — ENERGY');
+  assert.equal(sheets[0].rows[1][1], 'Correction Factor:');
+  assert.equal(sheets[0].rows[7][0], 'Dosimeter ID');
+  assert.equal(sheets[0].rows[8][0], '← Enter Ai values in column C');
+  assert.equal(sheets[0].rows[9][0], 1);
+  assert.equal(sheets[0].rows[9][1], 0.1812);
+
+  const flat = JSON.stringify(sheets[0].rows);
+  assert.ok(flat.includes('VLOOKUP'), 'ต้องมีสูตร VLOOKUP');
+  assert.ok(flat.includes('SLOPE'), 'ต้องมีสูตร SLOPE');
+  assert.ok(flat.includes('INTERCEPT'), 'ต้องมีสูตร INTERCEPT');
+  assert.ok(flat.includes('0.99*6.2'), 'ต้องมีสูตร Ea');
+  assert.ok(flat.includes('5.09'), 'ต้องมีสูตร Ep');
+
+  const bytes = buildXlsx(sheets);
+  const text = Buffer.from(bytes).toString('latin1');
+  assert.ok(text.includes('VLOOKUP'), 'ไฟล์ต้องมีสูตร VLOOKUP');
+
+  const { sheets: out } = await readXlsx(bytes);
+  assert.equal(out[1].name, 'Dose Table');
+  assert.equal(out[1].rows.length, 3);
 });
 
 test('readXlsx: อ่านไฟล์ที่สร้างจาก Excel จริง (deflate) ได้', async () => {

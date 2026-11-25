@@ -168,6 +168,12 @@ function sheetXml(rows, hasDrawing) {
         .map((value, colIdx) => {
           if (value === null || value === undefined || value === '') return '';
           const ref = `${colName(colIdx)}${rowIndex + 1}`;
+          if (value && typeof value === 'object' && typeof value.f === 'string') {
+            const cached = value.v;
+            const cachedTag =
+              cached === undefined || cached === null || cached === '' ? '' : `<v>${escapeXml(String(cached))}</v>`;
+            return `<c r="${ref}"><f>${escapeXml(value.f)}</f>${cachedTag}</c>`;
+          }
           if (typeof value === 'number' && Number.isFinite(value)) {
             return `<c r="${ref}"><v>${value}</v></c>`;
           }
@@ -295,7 +301,7 @@ export function buildXlsx(sheets, options = {}) {
     list
       .map((sheet, i) => `<sheet name="${escapeXml((sheet.name || `Sheet${i + 1}`).slice(0, 31))}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`)
       .join('') +
-    '</sheets></workbook>';
+    '</sheets><calcPr calcId="0" fullCalcOnLoad="1"/></workbook>';
 
   files.push({ name: '[Content_Types].xml', data: enc.encode(contentTypes) });
   files.push({ name: '_rels/.rels', data: enc.encode(rootRels) });

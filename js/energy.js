@@ -129,9 +129,15 @@ function rSquared(points, fit) {
 }
 
 const MIN_FIT_POINTS = 5;
-const MAX_FIT_POINTS = 7;
+const MAX_FIT_POINTS = 14;
+const R2_GOOD_ENOUGH = 0.999;
 
-/** เลือกช่วง fit อัตโนมัติ: เลื่อนหน้าต่าง 5–7 จุดหลัง Dmax แล้วเลือกช่วงที่ R² สูงสุด */
+/**
+ * เลือกช่วง fit อัตโนมัติ:
+ * - ไล่หน้าต่าง 5–14 จุดหลัง Dmax แล้วหา R² ที่ดีที่สุดของแต่ละขนาด
+ * - ถ้ามีขนาดที่ R² ≥ 0.999 ให้ใช้หน้าต่างที่ "ใหญ่ที่สุด" (จุดมากที่สุด) เพื่อความเสถียร
+ * - ถ้าไม่มี ให้ใช้ R² สูงสุดตามเดิม
+ */
 export function autoFitRange(rows, dmax, criterion = 'r2') {
   const valid = rows.filter((row) => row.adjusted !== null && row.depth !== null && row.adjusted !== undefined);
   if (valid.length < MIN_FIT_POINTS + 1 || !Number.isFinite(dmax) || dmax <= 0) return null;
@@ -144,43 +150,45 @@ export function autoFitRange(rows, dmax, criterion = 'r2') {
   const tail = valid.slice(maxIndex + 1);
   if (tail.length < MIN_FIT_POINTS) return null;
 
-  const candidates = [];
-
-  for (const size of [MAX_FIT_POINTS, MAX_FIT_POINTS - 1, MIN_FIT_POINTS]) {
-    if (size > tail.length) continue;
+  const perSize = [];
+  for (let size = Math.min(MAX_FIT_POINTS, tail.length); size >= MIN_FIT_POINTS; size -= 1) {
+    let best = null;
     for (let start = 0; start + size <= tail.length; start += 1) {
       const window = tail.slice(start, start + size);
       const points = window.map((row) => ({ x: row.depth, y: row.adjusted }));
       const fit = linearFit(points);
       if (!fit || !(fit.slope < 0)) continue;
-      candidates.push({
-        from: window[0].index,
-        to: window[window.length - 1].index,
-        fit,
-        r2: rSquared(points, fit),
-        points: size,
-      });
+      const r2 = rSquared(points, fit);
+      if (!best || r2 > best.r2 + 1e-12) {
+        best = {
+          from: window[0].index,
+          to: window[window.length - 1].index,
+          fit,
+          r2,
+          points: size,
+        };
+      }
     }
+    if (best) perSize.push(best);
   }
 
-  if (candidates.length === 0) return null;
+  if (perSize.length === 0) return null;
 
-  let best = candidates[0];
-  for (const candidate of candidates) {
-    if (criterion === 'slope1') {
+  let best = perSize.reduce((a, b) => (b.r2 > a.r2 ? b : a));
+
+  if (criterion === 'slope1') {
+    for (const candidate of perSize) {
       const distance = Math.abs(Math.abs(candidate.fit.slope) - 1);
       const bestDistance = Math.abs(Math.abs(best.fit.slope) - 1);
       if (distance < bestDistance - 1e-12 || (Math.abs(distance - bestDistance) < 1e-12 && candidate.r2 > best.r2)) {
         best = candidate;
       }
-    } else if (candidate.r2 > best.r2 + 1e-12) {
-      best = candidate;
-    } else if (Math.abs(candidate.r2 - best.r2) < 1e-12) {
-      // R² เท่ากัน: ใช้จำนวนจุดมากกว่า และเลือกช่วงที่ชันกว่า
-      if (candidate.points > best.points || (candidate.points === best.points && Math.abs(candidate.fit.slope) > Math.abs(best.fit.slope))) {
-        best = candidate;
-      }
     }
+  } else {
+    const good = perSize
+      .filter((candidate) => candidate.r2 >= R2_GOOD_ENOUGH)
+      .sort((a, b) => b.points - a.points || b.r2 - a.r2);
+    if (good.length > 0) best = good[0];
   }
 
   return { from: best.from, to: best.to, r2: best.r2, slope: best.fit.slope, criterion, points: best.points };
@@ -217,59 +225,104 @@ export function doseToResponse(dose, table) {
   return last.a;
 }
 
-/**
- * จำลอง depth–dose แบบเปอร์เซ็นต์ depth dose (PDD) ของลำอิเล็กตรอน
- * แล้วแปลงกลับเป็นค่า Ai ผ่านตาราง Dose (Response → Dose)
- */
-export function simulateDepthDose({ energy, depths, table, ao = 0, thickness = 0.018 }) {
+function buildEnergyCurve(energy, rpRatio = 1.335) {
   const e = Number(energy);
   if (!Number.isFinite(e) || e <= 0.5) throw new Error('พลังงานต้องมากกว่า 0.5 MeV');
-  if (!Array.isArray(table) || table.length < 2) throw new Error('ต้องมีตาราง Dose (Response → Dose) ก่อน');
-  if (!Array.isArray(depths) || depths.length === 0) throw new Error('ไม่มีระยะลึกให้จำลอง');
 
   const r50 = e / (0.99 * 6.2);
-  const rp = (e - 0.2) / (0.99 * 5.09);
+  // ใช้สัดส่วน Rp/R50 แบบเดียวกับไฟล์ตัวอย่าง energy test.xlsx (Rp 4.176 / R50 3.128)
+  const rp = r50 * (Number(rpRatio) > 1 ? Number(rpRatio) : 1.335);
   if (!(rp > r50 + 1e-6)) throw new Error('พลังงานต่ำเกินไปสำหรับสูตรนี้');
 
   const slope = -0.5 / (rp - r50);
   const intercept = -slope * rp;
   const zmax = rp + 1 / slope;
+  return { e, r50, rp, slope, intercept, zmax };
+}
 
+function relativeDoseAt(curve, depth, index) {
+  let relative;
+  if (depth <= curve.zmax) {
+    const t = curve.zmax > 0 ? depth / curve.zmax : 1;
+    relative = 0.85 + 0.15 * t * t; // buildup จาก surface dose 85% ไปถึง 100% ที่ zmax
+  } else {
+    relative = 1 + curve.slope * (depth - curve.zmax); // ส่วนลดลงแบบเส้นตรง (tangent)
+  }
+  if (relative < 0.01) relative = 0.01;
+
+  const ripple = 1 + 0.002 * Math.sin(index * 1.7); // ripple เล็กน้อยให้เหมือนข้อมูลวัดจริง
+  return Math.max(0, relative * ripple);
+}
+
+/**
+ * จำลอง depth–dose แบบเปอร์เซ็นต์ depth dose (PDD) ของลำอิเล็กตรอน
+ * แล้วแปลงกลับเป็นค่า Ai ผ่านตาราง Dose (Response → Dose)
+ */
+export function simulateDepthDose({ energy, depths, table, ao = 0, thickness = 0.018, peakDose = 31 }) {
+  if (!Array.isArray(table) || table.length < 2) throw new Error('ต้องมีตาราง Dose (Response → Dose) ก่อน');
+  if (!Array.isArray(depths) || depths.length === 0) throw new Error('ไม่มีระยะลึกให้จำลอง');
+
+  const curve = buildEnergyCurve(energy);
   const maxTableDose = table.reduce((max, point) => (point.dose > max ? point.dose : max), 0);
-  const peakDose = maxTableDose * 0.92;
+
+  // ใช้ Dmax ที่สมจริง (ค่าเริ่มต้น 31 kGy) แต่ไม่เกินขอบเขตตารางสอบเทียบ
+  const requested = Number(peakDose) > 0 ? Number(peakDose) : 31;
+  const peak = Math.min(requested, maxTableDose * 0.98);
 
   const rows = depths.map((rawDepth, index) => {
     const depth = Number(rawDepth);
-    let relative;
-    if (depth <= zmax) {
-      const t = zmax > 0 ? depth / zmax : 1;
-      relative = 0.85 + 0.15 * t * t; // buildup จาก surface dose 85% ไปถึง 100% ที่ zmax
-    } else {
-      relative = 1 + slope * (depth - zmax); // ส่วนลดลงแบบเส้นตรง (tangent)
-    }
-    if (relative < 0.01) relative = 0.01;
-
-    const ripple = 1 + 0.002 * Math.sin(index * 1.7); // ripple เล็กน้อยให้เหมือนข้อมูลวัดจริง
-    const dose = Math.max(0, relative * peakDose * ripple);
+    const dose = relativeDoseAt(curve, depth, index) * peak;
     const response = doseToResponse(dose, table);
     const ai = response === null ? null : Number((response * thickness + ao).toFixed(4));
-
     return { depth: Number.isFinite(depth) ? depth : null, ai };
   });
 
-  return { rows, r50, rp, zmax, peakDose, slope, intercept };
+  return { rows, ...curve, peakDose: peak };
+}
+
+/**
+ * จำลองเส้น depth–dose แล้วคืน "ค่าโดส" โดยตรง (ใช้กับโหมดกรอกโดส)
+ * ค่าที่ได้มีรูปทรงเหมือนตัวอย่าง Excel: ขึ้นถึง Dmax แล้วลดลงตาม tangent
+ */
+export function simulateDoseCurve({ energy, depths, peakDose = 31 }) {
+  if (!Array.isArray(depths) || depths.length === 0) throw new Error('ไม่มีระยะลึกให้จำลอง');
+
+  const curve = buildEnergyCurve(energy);
+  const peak = Number(peakDose) > 0 ? Number(peakDose) : 31;
+
+  const raw = depths.map((rawDepth, index) => {
+    const depth = Number(rawDepth);
+    return { depth: Number.isFinite(depth) ? depth : null, dose: relativeDoseAt(curve, depth, index) * peak };
+  });
+
+  // ปรับสเกลให้ค่าสูงสุดที่สุ่มได้ = peakDose (Dmax ตรงกับที่ตั้งไว้)
+  const maxRaw = raw.reduce((max, row) => (row.dose > max ? row.dose : max), 0);
+  const scale = maxRaw > 0 ? peak / maxRaw : 1;
+
+  const rows = raw.map((row) => ({
+    depth: row.depth,
+    dose: Number((row.dose * scale).toFixed(3)),
+    ai: null,
+  }));
+
+  return { rows, ...curve, peakDose: peak };
 }
 
 export function computeEnergy({ rows = [], ao = 0, thickness = 0.018, correction = 1, table = [], autoFit = true, fitFrom = 1, fitTo = 1, criterion = 'r2' }) {
   const prepared = rows.map((row, index) => {
     const depth = row && row.depth !== null && row.depth !== '' ? Number(row.depth) : NaN;
     const ai = row && row.ai !== null && row.ai !== '' ? Number(row.ai) : NaN;
+    const directDose = row && row.dose !== null && row.dose !== undefined && row.dose !== '' ? Number(row.dose) : NaN;
 
     let response = null;
     let dose = null;
     let adjusted = null;
 
-    if (Number.isFinite(ai) && thickness > 0) {
+    if (Number.isFinite(directDose)) {
+      // กรอกโดสโดยตรง (kGy) ไม่ต้องผ่านตารางสอบเทียบ
+      dose = directDose;
+      adjusted = dose * correction;
+    } else if (Number.isFinite(ai) && thickness > 0) {
       response = (ai - ao) / thickness;
       if (table.length > 0) {
         dose = doseFromPoints(response, table);
@@ -284,6 +337,7 @@ export function computeEnergy({ rows = [], ao = 0, thickness = 0.018, correction
       response,
       dose,
       adjusted,
+      direct: Number.isFinite(directDose),
     };
   });
 
@@ -317,7 +371,9 @@ export function computeEnergy({ rows = [], ao = 0, thickness = 0.018, correction
   let error = '';
   let warning = '';
 
-  if (table.length === 0) {
+  const hasDirectDose = prepared.some((row) => row.direct);
+
+  if (table.length === 0 && !hasDirectDose) {
     error = 'ยังไม่มีตารางสอบเทียบ (A → Dose) — นำเข้าที่แท็บสอบเทียบก่อน';
   } else if (dmax === null) {
     error = 'ยังไม่มีข้อมูลที่คำนวณโดสได้';
